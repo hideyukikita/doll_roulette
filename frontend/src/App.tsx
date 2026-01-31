@@ -1,13 +1,48 @@
 /**
- * ぬいぐるみルーレット フロントエンド（Step 1: Docker 環境構築用の最小表示）
+ * かぞくたちルーレット フロントエンド（Step 3: 登録・一覧 / Step 4: ルーレット）
  */
+import { useState } from "react";
+import DollsPage from "./pages/DollsPage";
+import RoulettePage from "./pages/RoulettePage";
+
+type Page = "list" | "roulette";
+
 function App() {
+  const [page, setPage] = useState<Page>("roulette");
+
   return (
-    <div className="min-h-screen bg-gray-100 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg shadow p-6 text-center">
-        <h1 className="text-xl font-bold text-gray-800">ぬいぐるみルーレット</h1>
-        <p className="mt-2 text-gray-600">Step 1: Docker 環境構築完了後、ここから画面を拡張します。</p>
-      </div>
+    <div className="min-h-screen bg-gray-100">
+      <nav className="bg-white shadow-sm border-b border-gray-200">
+        <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex gap-4 py-3">
+            <button
+              type="button"
+              onClick={() => setPage("roulette")}
+              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                page === "roulette"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              ルーレット
+            </button>
+            <button
+              type="button"
+              onClick={() => setPage("list")}
+              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+                page === "list"
+                  ? "bg-indigo-100 text-indigo-700"
+                  : "text-gray-600 hover:bg-gray-100"
+              }`}
+            >
+              かぞく一覧
+            </button>
+          </div>
+        </div>
+      </nav>
+      <main>
+        {page === "roulette" ? <RoulettePage /> : <DollsPage />}
+      </main>
     </div>
   );
 }

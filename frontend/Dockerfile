@@ -1,4 +1,4 @@
-# ぬいぐるみルーレット フロントエンド（Vite + React + TypeScript）
+# かぞくたちルーレット フロントエンド（Vite + React + TypeScript）
 # ビルドコンテキスト: プロジェクトルート（docker-compose で context: . を指定）
 FROM node:22-alpine
 
