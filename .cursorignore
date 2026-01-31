@@ -1,0 +1,19 @@
+# 依存関係（非常に重いため無視）
+node_modules/
+frontend/node_modules/
+backend/node_modules/
+
+# ビルド成果物
+dist/
+build/
+.next/
+
+# ログとキャッシュ
+*.log
+.DS_Store
+.npm
+.eslintcache
+
+# DBの実データ（バイナリなのでAIには読めない）
+postgres_data/
+

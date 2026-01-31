@@ -1,0 +1,64 @@
+# ぬいぐるみルーレット 3コンテナ構成（design.md / folder-structure.md に基づく）
+# プロジェクトルートの .env を読み込み、各コンテナへ注入する（design.md セクション8）
+
+services:
+  db:
+    image: postgres:16-alpine
+    container_name: doll_roulette_db
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-doll_roulette}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD を .env に設定してください}
+      POSTGRES_DB: ${POSTGRES_DB:-doll_roulette}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-doll_roulette} -d ${POSTGRES_DB:-doll_roulette}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: .
+      dockerfile: backend/Dockerfile
+    container_name: doll_roulette_backend
+    environment:
+      NODE_ENV: development
+      BACKEND_HOST: ${BACKEND_HOST:-0.0.0.0}
+      BACKEND_PORT: ${BACKEND_PORT:-3000}
+      DB_HOST: ${DB_HOST:-db}
+      DB_PORT: ${DB_PORT:-5432}
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    ports:
+      - "${BACKEND_PORT:-3000}:3000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend/Dockerfile
+    container_name: doll_roulette_frontend
+    volumes:
+      - ./frontend:/app
+      # WSL2 等でボリュームマウント時のパーミッションエラーを防ぐため、
+      # node_modules は匿名ボリュームでコンテナ内に保持（design.md セクション7）
+      - frontend_node_modules:/app/node_modules
+    command: sh -c "npm install && npm run dev"
+    ports:
+      - "5173:5173"
+    environment:
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+    depends_on:
+      - backend
+    # Vite が 0.0.0.0 でリッスンするよう vite.config.ts で host: true を設定済み
+
+volumes:
+  postgres_data:
+  frontend_node_modules:
