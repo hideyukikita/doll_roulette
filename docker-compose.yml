@@ -1,4 +1,4 @@
-# ぬいぐるみルーレット 3コンテナ構成（design.md / folder-structure.md に基づく）
+# かぞくたちルーレット 3コンテナ構成（design.md / folder-structure.md に基づく）
 # プロジェクトルートの .env を読み込み、各コンテナへ注入する（design.md セクション8）
 
 services:

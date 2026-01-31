@@ -67,7 +67,7 @@ doll_roulette/
 
 | パス | 役割 |
 |------|------|
-| `frontend/` | React SPA。ぬいぐるみ一覧・登録・ルーレット・履歴・リセットのUI。`api/` で backend を呼ぶ。 |
+| `frontend/` | React SPA。かぞくたち一覧・登録・ルーレット・履歴・リセットのUI。`api/` で backend を呼ぶ。 |
 | `backend/src/routes/` | 例: `/api/dolls`, `/api/dolls/:id`, `/api/histories`, `/api/reset` など。 |
 | `backend/src/services/` | ルーレットの「未選択から1体選ぶ」「全員選択済みなら終了」などのロジック。 |
 | `backend/src/db/` | PostgreSQL 接続と、dolls / histories のスキーマ管理。 |

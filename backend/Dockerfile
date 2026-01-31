@@ -1,4 +1,4 @@
-# ぬいぐるみルーレット バックエンド（Node.js + Express + TypeScript）
+# かぞくたちルーレット バックエンド（Node.js + Express + TypeScript）
 # ビルドコンテキスト: プロジェクトルート（docker-compose で context: . を指定）
 FROM node:22-alpine
 

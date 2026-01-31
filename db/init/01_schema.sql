@@ -1,4 +1,4 @@
--- ぬいぐるみルーレット 初期スキーマ（design.md に基づく）
+-- かぞくたちルーレット 初期スキーマ（design.md に基づく）
 -- PostgreSQL コンテナ起動時に /docker-entrypoint-initdb.d で実行される
 
 -- UUID 拡張を有効化

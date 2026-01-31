@@ -1,7 +1,7 @@
-# Step 2 動作確認（DB 接続 & ぬいぐるみ API）
+# Step 2 動作確認（DB 接続 & かぞくたち API）
 
 ## 概要
-- バックエンドが PostgreSQL に接続し、ぬいぐるみの**一覧・登録・削除** API を提供します。
+- バックエンドが PostgreSQL に接続し、かぞくたちの**一覧・登録・削除** API を提供します。
 - フロントエンド画面は Step 3 で作成します。
 
 ---
@@ -63,7 +63,7 @@ curl -s -X DELETE http://localhost:3000/api/dolls/<ID>
 |------|------|
 | 500 / 接続エラー | DB が起動しているか `docker compose ps` で確認。backend を再起動: `docker compose restart backend` |
 | 400 name と color は必須 | POST の body に `name` と `color`（文字列）が含まれているか確認 |
-| 404 指定のぬいぐるみが見つかりません | DELETE の ID が正しいか、既に削除済みでないか確認 |
+| 404 指定のかぞくが見つかりません | DELETE の ID が正しいか、既に削除済みでないか確認 |
 
 ---
 

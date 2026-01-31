@@ -49,7 +49,7 @@ docker compose up --build
 
 ### 3.1 フロントエンド（ブラウザ）
 - **URL**: http://localhost:5173
-- **期待**: 「ぬいぐるみルーレット」「Step 1: Docker 環境構築完了後…」の画面が表示される
+- **期待**: 「かぞくたちルーレット」「Step 1: Docker 環境構築完了後…」の画面が表示される
 
 ### 3.2 バックエンド API（ヘルスチェック）
 - **URL**: http://localhost:3000/api/health
@@ -59,7 +59,7 @@ docker compose up --build
 curl -s http://localhost:3000/api/health
 ```
 
-- **期待**: `{"ok":true,"message":"ぬいぐるみルーレット API"}` が返る
+- **期待**: `{"ok":true,"message":"かぞくたちルーレット API"}` が返る
 
 ### 3.3 データベース（Postgres）
 - **接続例**（別ターミナルでコンテナ内から）:
@@ -168,5 +168,5 @@ docker compose down -v
 | フロントで API に繋がらない | ブラウザから叩く URL なので、`VITE_API_BASE_URL` は PC の IP または `localhost`。CORS は backend で許可済み。 |
 | ポート 5173 / 3000 が使えない | 他プロセスが使用していないか確認。`docker compose down` 後にもう一度 `up`。 |
 | WSL2 でボリュームのパーミッションエラー | `frontend_node_modules` などの匿名ボリュームで `node_modules` を保持する構成にしてある。まだ出る場合はプロジェクトを WSL のホーム配下に置く。 |
-| PC で `http://172.26.x.x:3000` を開くと「Cannot GET /」 | ルート `/` 用の応答を追加済み。再ビルド後は `{"message":"ぬいぐるみルーレット API","health":"/api/health"}` が返る。API の確認は `http://...:3000/api/health` でも可。 |
+| PC で `http://172.26.x.x:3000` を開くと「Cannot GET /」 | ルート `/` 用の応答を追加済み。再ビルド後は `{"message":"かぞくたちルーレット API","health":"/api/health"}` が返る。API の確認は `http://...:3000/api/health` でも可。 |
 | スマホで「このサイトにはアクセスできません」 | 172.26.x.x は WSL2 用のためスマホから届かない。**Windows の IP（ipconfig の IPv4、多くは 192.168.x.x）** でアクセスし、同一 Wi‑Fi かつ **Windows ファイアウォールで 3000 / 5173 を許可**する（上記「4. スマホから接続」を参照）。 |

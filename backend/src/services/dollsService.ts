@@ -1,5 +1,5 @@
 /**
- * ぬいぐるみのビジネスロジック（一覧・登録・削除）
+ * かぞくたちのビジネスロジック（一覧・登録・削除）
  */
 import { pool } from "../db/client.js";
 import type { Doll, CreateDollBody } from "../types/doll.js";

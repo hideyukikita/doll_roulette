@@ -1,5 +1,5 @@
 /**
- * ぬいぐるみ API ルート（一覧・登録・削除）
+ * かぞくたち API ルート（一覧・登録・削除）
  */
 import { Router, Request, Response } from "express";
 import * as dollsService from "../services/dollsService.js";
@@ -42,7 +42,7 @@ router.delete("/:id", async (req: Request, res: Response) => {
   try {
     const deleted = await dollsService.deleteDoll(id);
     if (!deleted) {
-      res.status(404).json({ error: "指定のぬいぐるみが見つかりません" });
+      res.status(404).json({ error: "指定のかぞくが見つかりません" });
       return;
     }
     res.status(204).send();

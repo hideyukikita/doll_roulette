@@ -1,5 +1,5 @@
 /**
- * ぬいぐるみの型定義（design.md dolls テーブルに準拠）
+ * かぞくたち（doll）の型定義（design.md dolls テーブルに準拠）
  */
 export interface Doll {
   id: string;
