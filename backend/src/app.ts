@@ -6,6 +6,7 @@ import cors from "cors";
 import dollsRouter from "./routes/dolls.js";
 import rouletteRouter from "./routes/roulette.js";
 import historiesRouter from "./routes/histories.js";
+import resetRouter from "./routes/reset.js";
 
 const app = express();
 
@@ -25,6 +26,7 @@ app.get("/", (_req, res) => {
     dolls: "/api/dolls",
     roulette: "/api/roulette/spin",
     histories: "/api/histories",
+    reset: "/api/reset",
   });
 });
 
@@ -38,5 +40,7 @@ app.use("/api/dolls", dollsRouter);
 app.use("/api/roulette", rouletteRouter);
 // 当選履歴 API（Step 4）
 app.use("/api/histories", historiesRouter);
+// リセット API（Step 5）
+app.use("/api/reset", resetRouter);
 
 export default app;

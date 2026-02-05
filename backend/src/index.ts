@@ -1,3 +1,4 @@
+/// <reference types="node" />
 /**
  * かぞくたちルーレット バックエンド エントリ
  * Step 2: DB 接続 & かぞく一覧・登録 API / Step 4: ルーレット API

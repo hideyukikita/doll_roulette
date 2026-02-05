@@ -1,14 +1,13 @@
 /**
- * ルーレットページ（Step 4: 演出・当選・残り/全カウント・当選履歴）
+ * ルーレットページ（Step 4: 円形ルーレット演出・当選・残り/全カウント・当選履歴）
  */
 import { useState, useEffect } from "react";
 import { getDolls } from "../api/dolls.js";
 import { spinRoulette, type SpinResponse } from "../api/roulette.js";
 import { getHistories, type HistoryRecord } from "../api/histories.js";
+import { resetAllSelected } from "../api/reset.js";
 import type { Doll } from "../types/doll.js";
-
-const SPIN_DURATION_MS = 2500;
-const CYCLE_INTERVAL_MS = 120;
+import RouletteWheel from "../components/RouletteWheel.js";
 
 export default function RoulettePage() {
   const [dolls, setDolls] = useState<Doll[]>([]);
@@ -16,9 +15,10 @@ export default function RoulettePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [spinning, setSpinning] = useState(false);
-  const [displayName, setDisplayName] = useState<string>("?");
+  const [rotation, setRotation] = useState(0);
   const [result, setResult] = useState<Doll | null>(null);
   const [allDone, setAllDone] = useState(false);
+  const [resetting, setResetting] = useState(false);
 
   const remaining = dolls.filter((d) => !d.is_selected).length;
   const total = dolls.length;
@@ -51,28 +51,20 @@ export default function RoulettePage() {
     setResult(null);
     setAllDone(false);
     setSpinning(true);
-    const names = dolls.map((d) => d.name);
-    if (names.length === 0) names.push("?");
-    let cycleIndex = 0;
-    const cycle = setInterval(() => {
-      setDisplayName(names[cycleIndex % names.length] ?? "?");
-      cycleIndex++;
-    }, CYCLE_INTERVAL_MS);
-    const stopAt = Date.now() + SPIN_DURATION_MS;
-    const wait = () => {
-      if (Date.now() < stopAt) {
-        setTimeout(wait, 50);
-        return;
-      }
-      clearInterval(cycle);
+
+    // 回転（3〜5回転 + ランダムな最終角度）
+    const extraRotations = 3 + Math.random() * 2;
+    const finalAngle = rotation + 360 * extraRotations + Math.random() * 360;
+    setRotation(finalAngle);
+
+    // 3秒後に結果を取得
+    setTimeout(() => {
       spinRoulette()
         .then((res: SpinResponse) => {
           if ("allDone" in res && res.allDone) {
             setAllDone(true);
-            setDisplayName("全員一周したよ！");
           } else if ("doll" in res) {
             setResult(res.doll);
-            setDisplayName(res.doll.name);
           }
           return Promise.all([getDolls(), getHistories(20)]);
         })
@@ -82,13 +74,32 @@ export default function RoulettePage() {
         })
         .catch((e) => {
           setError(e instanceof Error ? e.message : "ルーレットに失敗しました");
-          setDisplayName("?");
         })
         .finally(() => {
           setSpinning(false);
         });
-    };
-    setTimeout(wait, 50);
+    }, 3000);
+  };
+
+  const handleReset = async () => {
+    if (resetting) return;
+    if (!window.confirm("全員の選択状態をリセットしますか？\n（全員がまた選ばれるようになります）")) {
+      return;
+    }
+    setResetting(true);
+    setError(null);
+    try {
+      await resetAllSelected();
+      setResult(null);
+      setAllDone(false);
+      const [list, hist] = await Promise.all([getDolls(), getHistories(20)]);
+      setDolls(list);
+      setHistories(hist);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "リセットに失敗しました");
+    } finally {
+      setResetting(false);
+    }
   };
 
   const formatDate = (iso: string) => {
@@ -107,45 +118,57 @@ export default function RoulettePage() {
   return (
     <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
-        <h1 className="text-2xl font-bold text-gray-800 mb-6">かぞくたちルーレット</h1>
+        <h1 className="text-2xl font-bold text-gray-800 mb-6 text-center">かぞくたちルーレット</h1>
 
-        {/* 残り / 全 */}
-        <section className="bg-white rounded-lg shadow p-6 mb-6">
-          <p className="text-center text-lg text-gray-700">
-            残り <span className="font-bold text-indigo-600">{remaining}</span> 人 / 全{" "}
-            <span className="font-bold text-gray-800">{total}</span> 人
-          </p>
+        {/* 残り / 全 + リセットボタン */}
+        <section className="bg-white rounded-lg shadow p-4 mb-6">
+          <div className="flex items-center justify-between">
+            <p className="text-lg text-gray-700">
+              残り <span className="font-bold text-indigo-600">{remaining}</span> 人 / 全{" "}
+              <span className="font-bold text-gray-800">{total}</span> 人
+            </p>
+            <button
+              type="button"
+              onClick={handleReset}
+              disabled={resetting || spinning || total === 0}
+              className="rounded-md bg-amber-100 px-3 py-1.5 text-sm font-medium text-amber-700 hover:bg-amber-200 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-amber-500 focus:ring-offset-2"
+            >
+              {resetting ? "リセット中…" : "リセット"}
+            </button>
+          </div>
         </section>
 
-        {/* ルーレット演出・結果 */}
-        <section className="bg-white rounded-lg shadow p-8 mb-6 text-center">
+        {/* ルーレット演出 */}
+        <section className="bg-white rounded-lg shadow p-6 mb-6">
           {error && (
-            <p className="mb-4 text-sm text-red-600" role="alert">
+            <p className="mb-4 text-sm text-red-600 text-center" role="alert">
               {error}
             </p>
           )}
-          <div
-            className="min-h-[80px] flex items-center justify-center text-2xl font-bold text-gray-800"
-            aria-live="polite"
-          >
-            {spinning ? (
-              <span className="animate-pulse">{displayName}</span>
-            ) : allDone ? (
-              <span className="text-amber-600">全員一周したよ！</span>
-            ) : result ? (
-              <span className="text-indigo-600">{displayName}</span>
-            ) : (
-              <span className="text-gray-400">回すと選ばれるよ</span>
-            )}
-          </div>
-          <button
-            type="button"
-            onClick={handleSpin}
-            disabled={spinning || total === 0}
-            className="mt-4 w-full rounded-md bg-indigo-600 px-4 py-3 text-lg font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
-          >
-            {spinning ? "まわしてる…" : total === 0 ? "かぞくを登録してね" : "ルーレットを回す"}
-          </button>
+          {total === 0 ? (
+            <p className="text-center text-gray-500 py-8">かぞくを登録してね</p>
+          ) : (
+            <>
+              <RouletteWheel dolls={dolls} rotation={rotation} />
+              <div className="mt-4 text-center">
+                {allDone ? (
+                  <p className="text-xl font-bold text-amber-600 mb-4">全員一周したよ！</p>
+                ) : result ? (
+                  <p className="text-xl font-bold text-indigo-600 mb-4">
+                    当選: {result.name}
+                  </p>
+                ) : null}
+                <button
+                  type="button"
+                  onClick={handleSpin}
+                  disabled={spinning}
+                  className="w-full rounded-md bg-indigo-600 px-4 py-3 text-lg font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                >
+                  {spinning ? "まわしてる…" : "ルーレットを回す"}
+                </button>
+              </div>
+            </>
+          )}
         </section>
 
         {/* 当選履歴 */}
