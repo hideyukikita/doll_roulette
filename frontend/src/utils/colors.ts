@@ -10,6 +10,7 @@ const COLOR_MAP: Record<string, { color: string; backgroundColor?: string; borde
   ピンク: { color: "#DB2777" },
   グレー: { color: "#6B7280" },
   青: { color: "#2563EB" },
+  緑: { color: "#059669" },
   黄: { color: "#B45309", backgroundColor: "#FEF3C7", borderColor: "#FCD34D" },
   黒: { color: "#111827" },
   その他: { color: "#6B7280" },

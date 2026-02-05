@@ -7,4 +7,5 @@ export interface HistoryRecord {
   selected_at: string;
   doll_name: string;
   doll_color: string;
+  doll_image_url: string | null;
 }

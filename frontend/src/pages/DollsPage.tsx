@@ -2,7 +2,8 @@
  * ぬいぐるみ管理ページ（登録・一覧・削除）Step 3
  */
 import { useState, useEffect, useCallback } from "react";
-import { getDolls, createDoll, updateDoll, deleteDoll } from "../api/dolls.js";
+import { getDolls, createDoll, updateDoll, deleteDoll, uploadDollImage } from "../api/dolls.js";
+import { apiUrl } from "../api/client.js";
 import type { Doll } from "../types/doll.js";
 
 /** 色の選択肢（design: 色を選択して登録） */
@@ -12,6 +13,7 @@ const COLOR_OPTIONS = [
   { value: "ピンク", label: "ピンク" },
   { value: "グレー", label: "グレー" },
   { value: "青", label: "青" },
+  { value: "緑", label: "緑" },
   { value: "黄", label: "黄" },
   { value: "黒", label: "黒" },
   { value: "その他", label: "その他" },
@@ -23,11 +25,13 @@ export default function DollsPage() {
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
   const [color, setColor] = useState(COLOR_OPTIONS[0].value);
+  const [imageFile, setImageFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState(COLOR_OPTIONS[0].value);
+  const [editImageFile, setEditImageFile] = useState<File | null>(null);
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -53,9 +57,13 @@ export default function DollsPage() {
     setSubmitting(true);
     setError(null);
     try {
-      await createDoll({ name: trimmedName, color });
+      const doll = await createDoll({ name: trimmedName, color });
+      if (imageFile) {
+        await uploadDollImage(doll.id, imageFile);
+      }
       setName("");
       setColor(COLOR_OPTIONS[0].value);
+      setImageFile(null);
       await fetchDolls();
     } catch (e) {
       setError(e instanceof Error ? e.message : "登録に失敗しました");
@@ -68,6 +76,7 @@ export default function DollsPage() {
     setEditingId(doll.id);
     setEditName(doll.name);
     setEditColor(doll.color);
+    setEditImageFile(null);
     setError(null);
   };
 
@@ -75,6 +84,7 @@ export default function DollsPage() {
     setEditingId(null);
     setEditName("");
     setEditColor(COLOR_OPTIONS[0].value);
+    setEditImageFile(null);
   };
 
   const handleEditSave = async (id: string) => {
@@ -84,9 +94,13 @@ export default function DollsPage() {
     setError(null);
     try {
       await updateDoll(id, { name: trimmedName, color: editColor });
+      if (editImageFile) {
+        await uploadDollImage(id, editImageFile);
+      }
       setEditingId(null);
       setEditName("");
       setEditColor(COLOR_OPTIONS[0].value);
+      setEditImageFile(null);
       await fetchDolls();
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新に失敗しました");
@@ -149,6 +163,19 @@ export default function DollsPage() {
                 ))}
               </select>
             </div>
+            <div>
+              <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
+                画像（任意）
+              </label>
+              <input
+                id="image"
+                type="file"
+                accept="image/jpeg,image/png,image/gif,image/webp"
+                onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
+                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 file:mr-4 file:rounded file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                disabled={submitting}
+              />
+            </div>
             <button
               type="submit"
               disabled={submitting || !name.trim()}
@@ -207,6 +234,25 @@ export default function DollsPage() {
                           ))}
                         </select>
                       </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">画像（任意）</label>
+                        {doll.image_url && (
+                          <div className="mb-2">
+                            <img
+                              src={apiUrl(doll.image_url)}
+                              alt={doll.name}
+                              className="h-16 w-16 object-cover rounded"
+                            />
+                          </div>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 file:mr-4 file:rounded file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700"
+                          disabled={submitting}
+                        />
+                      </div>
                       <div className="flex gap-2">
                         <button
                           type="button"
@@ -227,11 +273,20 @@ export default function DollsPage() {
                       </div>
                     </div>
                   ) : (
-                    <div className="flex items-center justify-between">
-                      <span className="font-medium text-gray-800">
-                        {doll.name}
-                        <span className="ml-2 text-sm font-normal text-gray-500">（{doll.color}）</span>
-                      </span>
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0">
+                        {doll.image_url && (
+                          <img
+                            src={apiUrl(doll.image_url)}
+                            alt={doll.name}
+                            className="h-10 w-10 object-cover rounded flex-shrink-0"
+                          />
+                        )}
+                        <span className="font-medium text-gray-800">
+                          {doll.name}
+                          <span className="ml-2 text-sm font-normal text-gray-500">（{doll.color}）</span>
+                        </span>
+                      </div>
                       <div className="flex gap-2">
                         <button
                           type="button"

@@ -25,6 +25,8 @@ services:
       context: .
       dockerfile: backend/Dockerfile
     container_name: doll_roulette_backend
+    volumes:
+      - uploads_data:/app/uploads
     environment:
       NODE_ENV: development
       BACKEND_HOST: ${BACKEND_HOST:-0.0.0.0}
@@ -62,3 +64,4 @@ services:
 volumes:
   postgres_data:
   frontend_node_modules:
+  uploads_data:

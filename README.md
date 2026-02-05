@@ -2,6 +2,8 @@
 
 飼っているぬいぐるみたちを平等に選び、一緒に寝る子を楽しく決めるアプリです。
 
+**実行環境**: WSL2 (Ubuntu) / Windows 上の Linux で動作します。
+
 ---
 
 ## 機能一覧
@@ -53,21 +55,32 @@ docker compose up -d
 
 同じ Wi-Fi に接続したスマートフォンからアプリを使えます。
 
+### WSL2 (Ubuntu) で実行している場合【要ポート転送】
+
+WSL2 は Windows 内の仮想 Linux のため、スマホからアクセスするには **Windows でポート転送の設定が必要**です。そのままでは Windows の IP でアクセスしても WSL2 の 5173/3000 には届きません。
+
+**必須**: `scripts/Connect-WSL.ps1` を **管理者として開いた PowerShell** で実行してください。
+
+```powershell
+# 管理者 PowerShell を開き、プロジェクトルートで実行
+.\scripts\Connect-WSL.ps1
+```
+
+このスクリプトは、Windows が受け取った 5173/3000 番ポートの通信を WSL2 に転送します。**PC や WSL2 を再起動したあとはスクリプトを再実行**してください（WSL2 の IP が変わります）。
+
 ### 手順
 
-#### 1. PC の IP アドレスを確認する
+#### 1. ポート転送を設定する（WSL2 の場合のみ）
 
-**Windows（WSL2 の場合）**:
-```powershell
-ipconfig
-```
-「イーサネット アダプター」または「ワイヤレス LAN アダプター」の **IPv4 アドレス** を確認（例: `192.168.1.100`）
+上記の `Connect-WSL.ps1` を実行。
 
-**Linux / Mac**:
+#### 2. PC（Windows）の IP アドレスを確認する
+
+**WSL2 の場合**（上記参照）: Windows ホストの IPv4 を使用
+
+**Linux / Mac で直接実行している場合**:
 ```bash
 hostname -I | awk '{print $1}'
-# または
-ip addr show | grep "inet " | grep -v 127.0.0.1
 ```
 
 #### 2. `.env` で API の URL を設定
@@ -80,7 +93,7 @@ ip addr show | grep "inet " | grep -v 127.0.0.1
 VITE_API_BASE_URL=http://192.168.1.100:3000
 ```
 
-#### 3. コンテナを再起動
+#### 4. コンテナを再起動
 
 環境変数を変更したら、フロントエンドを再ビルドするため再起動します:
 
@@ -89,7 +102,7 @@ docker compose down
 docker compose up -d
 ```
 
-#### 4. スマホのブラウザでアクセス
+#### 5. スマホのブラウザでアクセス
 
 スマホを **PC と同じ Wi-Fi** に接続し、ブラウザで次の URL を開きます:
 
@@ -102,7 +115,7 @@ http://192.168.1.100:5173
 ### 注意点
 
 - PC とスマホは **同じ Wi-Fi ネットワーク** に接続されている必要があります
-- ファイアウォールで 5173 番・3000 番ポートがブロックされていないか確認してください
+- **WSL2 の場合**: Windows のファイアウォールで 5173 番・3000 番ポートがブロックされていないか確認してください。接続できないときは、Windows の「ファイアウォールによるアプリの許可」で Node / Docker を許可するか、一時的にファイアウォールを無効にして試してください
 - PC の IP は再起動やネットワーク変更で変わる場合があります。接続できないときは再度確認してください
 
 ---
@@ -143,3 +156,8 @@ http://192.168.1.100:5173
 - [design.md](docs/design.md) - 開発計画・仕様
 - [folder-structure.md](docs/folder-structure.md) - フォルダ構成
 - [STATUS.md](docs/STATUS.md) - 実装状況
+- [step1-verify.md](docs/step1-verify.md) - 動作確認手順（ファイアウォール設定など詳細あり）
+
+## スクリプト
+
+- `scripts/Connect-WSL.ps1` - WSL2 用ポート転送（スマホ接続に必須）

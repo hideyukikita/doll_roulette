@@ -8,6 +8,7 @@ import { getHistories, type HistoryRecord } from "../api/histories.js";
 import { resetAllSelected } from "../api/reset.js";
 import type { Doll } from "../types/doll.js";
 import { getDollColorStyle } from "../utils/colors.js";
+import { apiUrl } from "../api/client.js";
 
 const SPIN_DURATION_MS = 2500;
 const CYCLE_INTERVAL_MS = 80;
@@ -229,20 +230,38 @@ export default function RoulettePage() {
                         }}
                       >
                         <p className="text-2xl font-black text-amber-600 mb-1">二回目！</p>
+                        <div className="flex items-center justify-center gap-3 flex-wrap">
+                          {result.image_url && (
+                            <img
+                              src={apiUrl(result.image_url)}
+                              alt={result.name}
+                              className="h-24 w-24 object-cover rounded"
+                            />
+                          )}
+                          <p
+                            className="text-xl font-bold inline-block px-3 py-1 rounded"
+                            style={getDollColorStyle(result.color)}
+                          >
+                            当選: {result.name}
+                          </p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="flex items-center justify-center gap-3 flex-wrap">
+                        {result.image_url && (
+                          <img
+                            src={apiUrl(result.image_url)}
+                            alt={result.name}
+                            className="h-24 w-24 object-cover rounded"
+                          />
+                        )}
                         <p
-                          className="text-xl font-bold inline-block px-3 py-1 rounded"
+                          className="text-2xl font-bold inline-block px-3 py-1 rounded"
                           style={getDollColorStyle(result.color)}
                         >
                           当選: {result.name}
                         </p>
                       </div>
-                    ) : (
-                      <p
-                        className="text-2xl font-bold inline-block px-3 py-1 rounded"
-                        style={getDollColorStyle(result.color)}
-                      >
-                        当選: {result.name}
-                      </p>
                     )}
                   </div>
                 ) : (
@@ -278,14 +297,23 @@ export default function RoulettePage() {
           ) : (
             <ul className="space-y-2">
               {histories.map((h) => (
-                <li key={h.id} className="flex justify-between items-center text-sm text-gray-700">
-                  <span
-                    className="font-medium inline-block px-2 py-0.5 rounded"
-                    style={getDollColorStyle(h.doll_color ?? "")}
-                  >
-                    {h.doll_name}
-                  </span>
-                  <span className="text-gray-500">{formatDate(h.selected_at)}</span>
+                <li key={h.id} className="flex justify-between items-center text-sm text-gray-700 gap-2">
+                  <div className="flex items-center gap-2 min-w-0">
+                    {h.doll_image_url && (
+                      <img
+                        src={apiUrl(h.doll_image_url)}
+                        alt={h.doll_name}
+                        className="h-8 w-8 object-cover rounded flex-shrink-0"
+                      />
+                    )}
+                    <span
+                      className="font-medium inline-block px-2 py-0.5 rounded"
+                      style={getDollColorStyle(h.doll_color ?? "")}
+                    >
+                      {h.doll_name}
+                    </span>
+                  </div>
+                  <span className="text-gray-500 flex-shrink-0">{formatDate(h.selected_at)}</span>
                 </li>
               ))}
             </ul>

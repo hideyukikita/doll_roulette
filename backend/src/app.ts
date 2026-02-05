@@ -2,6 +2,7 @@
  * Express アプリ設定（CORS・ルート）
  */
 import express from "express";
+import path from "path";
 import cors from "cors";
 import dollsRouter from "./routes/dolls.js";
 import rouletteRouter from "./routes/roulette.js";
@@ -17,6 +18,9 @@ app.use(
   })
 );
 app.use(express.json());
+
+// 画像ファイルの配信
+app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
 
 // ルートパス
 app.get("/", (_req, res) => {

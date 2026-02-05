@@ -24,6 +24,9 @@ backend/dist/
 # DBの実データ（Docker volume 用）
 postgres_data/
 
+# アップロード画像（ローカル実行時）
+backend/uploads/
+
 # IDE
 .idea/
 *.swp
