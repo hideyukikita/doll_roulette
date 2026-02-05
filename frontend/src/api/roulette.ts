@@ -6,6 +6,8 @@ import type { Doll } from "../types/doll.js";
 
 export interface SpinResult {
   doll: Doll;
+  /** 一度選ばれた子が再当選した場合 true */
+  luckySecond?: boolean;
 }
 
 export interface SpinAllDoneResult {

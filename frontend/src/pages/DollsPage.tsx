@@ -2,7 +2,7 @@
  * ぬいぐるみ管理ページ（登録・一覧・削除）Step 3
  */
 import { useState, useEffect, useCallback } from "react";
-import { getDolls, createDoll, deleteDoll } from "../api/dolls.js";
+import { getDolls, createDoll, updateDoll, deleteDoll } from "../api/dolls.js";
 import type { Doll } from "../types/doll.js";
 
 /** 色の選択肢（design: 色を選択して登録） */
@@ -25,6 +25,9 @@ export default function DollsPage() {
   const [color, setColor] = useState(COLOR_OPTIONS[0].value);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editColor, setEditColor] = useState(COLOR_OPTIONS[0].value);
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -56,6 +59,37 @@ export default function DollsPage() {
       await fetchDolls();
     } catch (e) {
       setError(e instanceof Error ? e.message : "登録に失敗しました");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleEditStart = (doll: Doll) => {
+    setEditingId(doll.id);
+    setEditName(doll.name);
+    setEditColor(doll.color);
+    setError(null);
+  };
+
+  const handleEditCancel = () => {
+    setEditingId(null);
+    setEditName("");
+    setEditColor(COLOR_OPTIONS[0].value);
+  };
+
+  const handleEditSave = async (id: string) => {
+    const trimmedName = editName.trim();
+    if (!trimmedName) return;
+    setSubmitting(true);
+    setError(null);
+    try {
+      await updateDoll(id, { name: trimmedName, color: editColor });
+      setEditingId(null);
+      setEditName("");
+      setEditColor(COLOR_OPTIONS[0].value);
+      await fetchDolls();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "更新に失敗しました");
     } finally {
       setSubmitting(false);
     }
@@ -142,20 +176,82 @@ export default function DollsPage() {
               {dolls.map((doll) => (
                 <li
                   key={doll.id}
-                  className="flex items-center justify-between rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
+                  className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
                 >
-                  <span className="font-medium text-gray-800">
-                    {doll.name}
-                    <span className="ml-2 text-sm font-normal text-gray-500">（{doll.color}）</span>
-                  </span>
-                  <button
-                    type="button"
-                    onClick={() => handleDelete(doll.id)}
-                    disabled={deletingId === doll.id}
-                    className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
-                  >
-                    {deletingId === doll.id ? "削除中…" : "削除"}
-                  </button>
+                  {editingId === doll.id ? (
+                    <div className="space-y-3">
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">名前</label>
+                        <input
+                          type="text"
+                          value={editName}
+                          onChange={(e) => setEditName(e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          maxLength={255}
+                          disabled={submitting}
+                          autoFocus
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-xs font-medium text-gray-500 mb-1">色</label>
+                        <select
+                          value={editColor}
+                          onChange={(e) => setEditColor(e.target.value)}
+                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          disabled={submitting}
+                        >
+                          {COLOR_OPTIONS.map((opt) => (
+                            <option key={opt.value} value={opt.value}>
+                              {opt.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditSave(doll.id)}
+                          disabled={submitting || !editName.trim()}
+                          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          {submitting ? "保存中…" : "保存"}
+                        </button>
+                        <button
+                          type="button"
+                          onClick={handleEditCancel}
+                          disabled={submitting}
+                          className="rounded-md bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                        >
+                          キャンセル
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex items-center justify-between">
+                      <span className="font-medium text-gray-800">
+                        {doll.name}
+                        <span className="ml-2 text-sm font-normal text-gray-500">（{doll.color}）</span>
+                      </span>
+                      <div className="flex gap-2">
+                        <button
+                          type="button"
+                          onClick={() => handleEditStart(doll)}
+                          disabled={editingId !== null}
+                          className="rounded-md bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                        >
+                          編集
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(doll.id)}
+                          disabled={deletingId === doll.id || editingId !== null}
+                          className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                        >
+                          {deletingId === doll.id ? "削除中…" : "削除"}
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

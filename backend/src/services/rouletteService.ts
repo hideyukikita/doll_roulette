@@ -4,13 +4,15 @@
 import { pool } from "../db/client.js";
 import type { Doll } from "../types/doll.js";
 
-/** 一度選ばれた子の重み（めちゃめちゃ低確率） */
-const SELECTED_WEIGHT = 0.01;
+/** 一度選ばれた子の重み（100〜200回に1回程度） */
+const SELECTED_WEIGHT = 0.008;
 /** 未選択の子の重み */
 const UNSELECTED_WEIGHT = 1;
 
 export interface SpinResult {
   doll: Doll;
+  /** 一度選ばれた子が再当選した場合 true */
+  luckySecond?: boolean;
 }
 
 export interface SpinAllDoneResult {
@@ -53,6 +55,7 @@ export async function spinRoulette(): Promise<SpinResponse> {
     }
     const selected = dolls[index];
     if (!selected) throw new Error("抽選に失敗しました");
+    const wasAlreadySelected = selected.is_selected;
 
     await client.query("BEGIN");
     try {
@@ -76,7 +79,7 @@ export async function spinRoulette(): Promise<SpinResponse> {
     );
     const doll = updated.rows[0];
     if (!doll) throw new Error("更新の取得に失敗しました");
-    return { doll };
+    return { doll, luckySecond: wasAlreadySelected };
   } finally {
     client.release();
   }

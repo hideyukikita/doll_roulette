@@ -6,4 +6,5 @@ export interface HistoryRecord {
   doll_id: string;
   selected_at: string;
   doll_name: string;
+  doll_color: string;
 }

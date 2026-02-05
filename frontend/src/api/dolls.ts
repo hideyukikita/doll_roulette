@@ -23,6 +23,20 @@ export async function createDoll(body: CreateDollBody): Promise<Doll> {
   return res.json() as Promise<Doll>;
 }
 
+export async function updateDoll(id: string, body: CreateDollBody): Promise<Doll> {
+  const res = await fetch(apiUrl(`/api/dolls/${id}`), {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(body),
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    const msg = data?.error ?? `更新に失敗しました（${res.status}）`;
+    throw new Error(msg);
+  }
+  return res.json() as Promise<Doll>;
+}
+
 export async function deleteDoll(id: string): Promise<void> {
   const res = await fetch(apiUrl(`/api/dolls/${id}`), { method: "DELETE" });
   if (!res.ok && res.status !== 204) {

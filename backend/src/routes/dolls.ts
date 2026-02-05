@@ -36,6 +36,30 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
+/** PUT /api/dolls/:id - 更新（body: { name, color }） */
+router.put("/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  const body = req.body as Partial<CreateDollBody>;
+  const name = body?.name?.trim();
+  const color = body?.color?.trim();
+  if (!name || !color) {
+    res.status(400).json({ error: "name と color は必須です" });
+    return;
+  }
+  try {
+    const doll = await dollsService.updateDoll(id, { name, color });
+    if (!doll) {
+      res.status(404).json({ error: "指定のかぞくが見つかりません" });
+      return;
+    }
+    res.json(doll);
+  } catch (err) {
+    console.error("Update doll error:", err);
+    const msg = err instanceof Error ? err.message : "更新に失敗しました";
+    res.status(500).json({ error: msg });
+  }
+});
+
 /** DELETE /api/dolls/:id - 削除 */
 router.delete("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;

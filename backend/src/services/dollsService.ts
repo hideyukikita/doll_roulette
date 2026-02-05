@@ -37,6 +37,17 @@ export async function createDoll(body: CreateDollBody): Promise<Doll> {
   return row;
 }
 
+/** 更新（名前・色） */
+export async function updateDoll(id: string, body: CreateDollBody): Promise<Doll | null> {
+  const result = await pool.query<Doll>(
+    `UPDATE dolls SET name = $1, color = $2
+     WHERE id = $3
+     RETURNING id, name, color, image_url, is_selected, created_at`,
+    [body.name.trim(), body.color.trim(), id]
+  );
+  return result.rows[0] ?? null;
+}
+
 /** 削除 */
 export async function deleteDoll(id: string): Promise<boolean> {
   const result = await pool.query(
