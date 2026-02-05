@@ -78,7 +78,7 @@ doll_roulette/
 
 ## 将来拡張を見据えた配置
 
-- **写真機能（二次）**: `frontend/src/pages/` に写真登録画面、`backend` にアップロード用ルート・ストレージ設定。`dolls.image_url` は既に設計済み。
+- **写真機能**: ✅ 実装済み。`POST /api/dolls/:id/image`、`/uploads` 静的配信、`uploads_data` ボリューム。
 - **認証・複数リスト（三次）**: `backend/src/` に `auth/`, `users/` などを追加しつつ、既存の `routes/` を拡張する形で対応可能。
 - **クラウドデプロイ**: `docker-compose.yml` はそのまま活かしつつ、`backend/Dockerfile` や環境変数で本番用設定を分離。
 
