@@ -124,14 +124,14 @@ export default function DollsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-gray-100 py-6 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-stone-50 py-6 px-4 sm:px-6 lg:px-8">
       <div className="max-w-2xl mx-auto">
         {/* 登録フォーム */}
         <section className="bg-white rounded-lg shadow p-6 mb-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">新しい子を追加</h2>
+          <h2 className="text-lg font-semibold text-stone-600 mb-4">新しい子を追加</h2>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="name" className="block text-sm font-medium text-stone-600 mb-1">
                 名前
               </label>
               <input
@@ -140,20 +140,20 @@ export default function DollsPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="例: くまさん"
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 placeholder-gray-400 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 placeholder-stone-400 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
                 maxLength={255}
                 disabled={submitting}
               />
             </div>
             <div>
-              <label htmlFor="color" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="color" className="block text-sm font-medium text-stone-600 mb-1">
                 色
               </label>
               <select
                 id="color"
                 value={color}
                 onChange={(e) => setColor(e.target.value)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
                 disabled={submitting}
               >
                 {COLOR_OPTIONS.map((opt) => (
@@ -164,7 +164,7 @@ export default function DollsPage() {
               </select>
             </div>
             <div>
-              <label htmlFor="image" className="block text-sm font-medium text-gray-700 mb-1">
+              <label htmlFor="image" className="block text-sm font-medium text-stone-600 mb-1">
                 画像（任意）
               </label>
               <input
@@ -172,14 +172,14 @@ export default function DollsPage() {
                 type="file"
                 accept="image/jpeg,image/png,image/gif,image/webp"
                 onChange={(e) => setImageFile(e.target.files?.[0] ?? null)}
-                className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 file:mr-4 file:rounded file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700 hover:file:bg-indigo-100"
+                className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600 hover:file:bg-violet-100"
                 disabled={submitting}
               />
             </div>
             <button
               type="submit"
               disabled={submitting || !name.trim()}
-              className="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+              className="w-full rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 disabled:cursor-not-allowed focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
             >
               {submitting ? "登録中…" : "追加する"}
             </button>
@@ -188,43 +188,43 @@ export default function DollsPage() {
 
         {/* 一覧 */}
         <section className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-lg font-semibold text-gray-700 mb-4">登録済みのかぞくたち</h2>
+          <h2 className="text-lg font-semibold text-stone-600 mb-4">登録済みのかぞくたち</h2>
           {error && (
-            <p className="mb-4 text-sm text-red-600" role="alert">
+            <p className="mb-4 text-sm text-rose-500" role="alert">
               {error}
             </p>
           )}
           {loading ? (
-            <p className="text-gray-500">読み込み中…</p>
+            <p className="text-stone-500">読み込み中…</p>
           ) : dolls.length === 0 ? (
-            <p className="text-gray-500">まだ登録されていません。上のフォームから追加してください。</p>
+            <p className="text-stone-500">まだ登録されていません。上のフォームから追加してください。</p>
           ) : (
             <ul className="space-y-3">
               {dolls.map((doll) => (
                 <li
                   key={doll.id}
-                  className="rounded-md border border-gray-200 bg-gray-50 px-4 py-3"
+                  className="rounded-md border border-stone-200 bg-stone-50 px-4 py-3"
                 >
                   {editingId === doll.id ? (
                     <div className="space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">名前</label>
+                        <label className="block text-xs font-medium text-stone-500 mb-1">名前</label>
                         <input
                           type="text"
                           value={editName}
                           onChange={(e) => setEditName(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
                           maxLength={255}
                           disabled={submitting}
                           autoFocus
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">色</label>
+                        <label className="block text-xs font-medium text-stone-500 mb-1">色</label>
                         <select
                           value={editColor}
                           onChange={(e) => setEditColor(e.target.value)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-gray-900 focus:border-indigo-500 focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
                           disabled={submitting}
                         >
                           {COLOR_OPTIONS.map((opt) => (
@@ -235,7 +235,7 @@ export default function DollsPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-500 mb-1">画像（任意）</label>
+                        <label className="block text-xs font-medium text-stone-500 mb-1">画像（任意）</label>
                         {doll.image_url && (
                           <div className="mb-2">
                             <img
@@ -249,7 +249,7 @@ export default function DollsPage() {
                           type="file"
                           accept="image/jpeg,image/png,image/gif,image/webp"
                           onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
-                          className="w-full rounded-md border border-gray-300 px-3 py-2 text-sm text-gray-600 file:mr-4 file:rounded file:border-0 file:bg-indigo-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-indigo-700"
+                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600"
                           disabled={submitting}
                         />
                       </div>
@@ -258,7 +258,7 @@ export default function DollsPage() {
                           type="button"
                           onClick={() => handleEditSave(doll.id)}
                           disabled={submitting || !editName.trim()}
-                          className="rounded-md bg-indigo-600 px-3 py-1.5 text-sm font-medium text-white hover:bg-indigo-700 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          className="rounded-md bg-violet-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
                         >
                           {submitting ? "保存中…" : "保存"}
                         </button>
@@ -266,7 +266,7 @@ export default function DollsPage() {
                           type="button"
                           onClick={handleEditCancel}
                           disabled={submitting}
-                          className="rounded-md bg-gray-200 px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                          className="rounded-md bg-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
                         >
                           キャンセル
                         </button>
@@ -282,9 +282,9 @@ export default function DollsPage() {
                             className="h-10 w-10 object-cover rounded flex-shrink-0"
                           />
                         )}
-                        <span className="font-medium text-gray-800">
+                        <span className="font-medium text-stone-700">
                           {doll.name}
-                          <span className="ml-2 text-sm font-normal text-gray-500">（{doll.color}）</span>
+                          <span className="ml-2 text-sm font-normal text-stone-500">（{doll.color}）</span>
                         </span>
                       </div>
                       <div className="flex gap-2">
@@ -292,7 +292,7 @@ export default function DollsPage() {
                           type="button"
                           onClick={() => handleEditStart(doll)}
                           disabled={editingId !== null}
-                          className="rounded-md bg-indigo-100 px-3 py-1.5 text-sm font-medium text-indigo-700 hover:bg-indigo-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
+                          className="rounded-md bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-600 hover:bg-violet-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
                         >
                           編集
                         </button>
@@ -300,7 +300,7 @@ export default function DollsPage() {
                           type="button"
                           onClick={() => handleDelete(doll.id)}
                           disabled={deletingId === doll.id || editingId !== null}
-                          className="rounded-md bg-red-100 px-3 py-1.5 text-sm font-medium text-red-700 hover:bg-red-200 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-red-500 focus:ring-offset-2"
+                          className="rounded-md bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
                         >
                           {deletingId === doll.id ? "削除中…" : "削除"}
                         </button>

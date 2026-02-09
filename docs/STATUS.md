@@ -26,9 +26,10 @@
 - **Docker**: uploads_data ボリュームで永続化
 
 ### ルーレット（RoulettePage）
-- **文字ルーレット**: 名前が高速で切り替わる演出（約2.5秒）
+- **円盤ルーレット**: 扇形セグメントが回転し、当選者が12時の針の位置に来て停止
 - **当選ロジック**: 未選択=重み1、選択済み=重み0.008（約100〜200回に1回）
-- **当選表示**: 登録時の色と画像で当選者を表示（画像 96×96px）
+- **当選表示**: 回転停止後、結果を3秒表示。登録時の色と画像で当選者を表示
+- **再描画**: 3秒後、当選者を除いた円盤に再描画
 - **二回目当選**: `luckySecond: true` で「二回目！」と派手な演出
 - **最後の一人**: 結果を3秒表示してから「全員一周」に切り替え
 - **残り/全カウント**: 「残り○人 / 全○人」表示
@@ -58,6 +59,7 @@ backend/src/
 
 frontend/src/
   pages/     DollsPage, RoulettePage
+  components/ RouletteWheel
   api/       dolls, roulette, histories, reset, client
   utils/     colors.ts
 

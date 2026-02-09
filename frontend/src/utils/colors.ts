@@ -4,19 +4,42 @@ import type { CSSProperties } from "react";
  * 登録時の色名を表示用スタイルに変換
  * 白・黄など明るい色は白背景で見えないため、背景や濃い色で調整
  */
-const COLOR_MAP: Record<string, { color: string; backgroundColor?: string; borderColor?: string }> = {
-  茶色: { color: "#8B4513" },
-  白: { color: "#374151", backgroundColor: "#f3f4f6", borderColor: "#e5e7eb" },
-  ピンク: { color: "#DB2777" },
-  グレー: { color: "#6B7280" },
-  青: { color: "#2563EB" },
-  緑: { color: "#059669" },
-  黄: { color: "#B45309", backgroundColor: "#FEF3C7", borderColor: "#FCD34D" },
-  黒: { color: "#111827" },
-  その他: { color: "#6B7280" },
+const COLOR_MAP: Record<
+  string,
+  { color: string; backgroundColor?: string; borderColor?: string; segmentFill?: string }
+> = {
+  茶色: { color: "#a07c5c" },
+  白: { color: "#78716c", backgroundColor: "#fafaf9", borderColor: "#e7e5e4", segmentFill: "#d6d3d1" },
+  ピンク: { color: "#ec4899" },
+  グレー: { color: "#78716c" },
+  青: { color: "#67a3e8" },
+  緑: { color: "#34b89a" },
+  黄: { color: "#ca8a04", backgroundColor: "#fefce8", borderColor: "#fde68a", segmentFill: "#fde68a" },
+  黒: { color: "#44403c" },
+  その他: { color: "#78716c" },
 };
 
-const DEFAULT_STYLE = { color: "#4B5563", backgroundColor: undefined, borderColor: undefined };
+const DEFAULT_STYLE = { color: "#78716c", backgroundColor: undefined, borderColor: undefined };
+
+/** 円盤セグメント用の塗り色（背景色）を返す。円盤上で視認しやすい色を優先 */
+export function getDollFillColor(colorName?: string): string {
+  const style = (colorName && COLOR_MAP[colorName]) ?? DEFAULT_STYLE;
+  return style.segmentFill ?? style.backgroundColor ?? style.color;
+}
+
+/** 円盤セグメント内の文字色（背景に応じて視認性確保） */
+const DARK_FILL_COLORS = new Set([
+  "#44403c",
+  "#a07c5c",
+  "#78716c",
+  "#67a3e8",
+  "#34b89a",
+  "#ec4899",
+]);
+export function getDollSegmentTextColor(colorName?: string): string {
+  const fill = getDollFillColor(colorName);
+  return DARK_FILL_COLORS.has(fill) ? "#fff" : "#1f2937";
+}
 
 export function getDollColorStyle(colorName?: string): CSSProperties {
   const style = (colorName && COLOR_MAP[colorName]) ?? DEFAULT_STYLE;

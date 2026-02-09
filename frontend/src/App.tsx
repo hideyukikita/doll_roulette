@@ -11,17 +11,17 @@ function App() {
   const [page, setPage] = useState<Page>("roulette");
 
   return (
-    <div className="min-h-screen bg-gray-100">
-      <nav className="bg-white shadow-sm border-b border-gray-200">
+    <div className="min-h-screen bg-stone-50">
+      <nav className="bg-white shadow-sm border-b border-stone-200">
         <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex gap-4 py-3">
             <button
               type="button"
               onClick={() => setPage("roulette")}
-              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2 ${
                 page === "roulette"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-violet-50 text-violet-600"
+                  : "text-stone-600 hover:bg-stone-50"
               }`}
             >
               ルーレット
@@ -29,10 +29,10 @@ function App() {
             <button
               type="button"
               onClick={() => setPage("list")}
-              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2 ${
+              className={`px-4 py-2 rounded-md text-sm font-medium focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2 ${
                 page === "list"
-                  ? "bg-indigo-100 text-indigo-700"
-                  : "text-gray-600 hover:bg-gray-100"
+                  ? "bg-violet-50 text-violet-600"
+                  : "text-stone-600 hover:bg-stone-50"
               }`}
             >
               かぞく一覧
