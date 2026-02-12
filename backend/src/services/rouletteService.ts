@@ -57,6 +57,16 @@ export async function spinRoulette(): Promise<SpinResponse> {
     if (!selected) throw new Error("抽選に失敗しました");
     const wasAlreadySelected = selected.is_selected;
 
+    // 当選時に表示する画像を決める（複数画像があればその中からランダム）
+    const imageCandidates = await client.query<{ image_url: string }>(
+      "SELECT image_url FROM doll_images WHERE doll_id = $1 ORDER BY sort_order, created_at",
+      [selected.id]
+    ).catch(() => ({ rows: [] as { image_url: string }[] }));
+    const candidateUrls = imageCandidates.rows.map((r) => r.image_url).filter(Boolean);
+    const chosenImageUrl = candidateUrls.length > 0
+      ? candidateUrls[Math.floor(Math.random() * candidateUrls.length)]
+      : selected.image_url;
+
     await client.query("BEGIN");
     try {
       await client.query(
@@ -64,8 +74,8 @@ export async function spinRoulette(): Promise<SpinResponse> {
         [selected.id]
       );
       await client.query(
-        `INSERT INTO histories (doll_id) VALUES ($1)`,
-        [selected.id]
+        `INSERT INTO histories (doll_id, doll_image_url) VALUES ($1, $2)`,
+        [selected.id, chosenImageUrl ?? null]
       );
       await client.query("COMMIT");
     } catch (e) {
@@ -79,7 +89,8 @@ export async function spinRoulette(): Promise<SpinResponse> {
     );
     const doll = updated.rows[0];
     if (!doll) throw new Error("更新の取得に失敗しました");
-    return { doll, luckySecond: wasAlreadySelected };
+    // レスポンスの image_url は「今回表示した画像」に差し替える（dolls テーブルは更新しない）
+    return { doll: { ...doll, image_url: chosenImageUrl ?? null }, luckySecond: wasAlreadySelected };
   } finally {
     client.release();
   }

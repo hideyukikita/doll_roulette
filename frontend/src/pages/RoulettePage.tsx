@@ -4,7 +4,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getDolls } from "../api/dolls.js";
 import { spinRoulette } from "../api/roulette.js";
-import { getHistories, type HistoryRecord } from "../api/histories.js";
+import { getHistories, deleteHistory, type HistoryRecord } from "../api/histories.js";
 import { resetAllSelected } from "../api/reset.js";
 import type { Doll } from "../types/doll.js";
 import { getDollColorStyle } from "../utils/colors.js";
@@ -43,6 +43,7 @@ export default function RoulettePage() {
   const [wheelDolls, setWheelDolls] = useState<Doll[]>([]);
   const [spinningMessage, setSpinningMessage] = useState("");
   const [resultMessage, setResultMessage] = useState("");
+  const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultRef = useRef<Doll | null>(null);
 
@@ -179,6 +180,22 @@ export default function RoulettePage() {
       console.error("Reset error:", e);
     } finally {
       setResetting(false);
+    }
+  };
+
+  const handleDeleteHistory = async (id: string) => {
+    if (!window.confirm("この当選結果を削除しますか？\n（その子はルーレットに戻ります）")) return;
+    setDeletingHistoryId(id);
+    setError(null);
+    try {
+      await deleteHistory(id);
+      const [list, hist] = await Promise.all([getDolls(), getHistories(20)]);
+      setDolls(list);
+      setHistories(hist);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "履歴の削除に失敗しました");
+    } finally {
+      setDeletingHistoryId(null);
     }
   };
 
@@ -341,7 +358,18 @@ export default function RoulettePage() {
                       {h.doll_name}
                     </span>
                   </div>
-                  <span className="text-stone-500 flex-shrink-0">{formatDate(h.selected_at)}</span>
+                  <div className="flex items-center gap-2 flex-shrink-0">
+                    <span className="text-stone-500">{formatDate(h.selected_at)}</span>
+                    <button
+                      type="button"
+                      onClick={() => handleDeleteHistory(h.id)}
+                      disabled={deletingHistoryId === h.id}
+                      className="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
+                      title="この結果を削除（その子はルーレットに戻る）"
+                    >
+                      {deletingHistoryId === h.id ? "削除中…" : "削除"}
+                    </button>
+                  </div>
                 </li>
               ))}
             </ul>

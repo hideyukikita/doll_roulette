@@ -2,7 +2,7 @@
  * ぬいぐるみ管理ページ（登録・一覧・削除）Step 3
  */
 import { useState, useEffect, useCallback } from "react";
-import { getDolls, createDoll, updateDoll, deleteDoll, uploadDollImage } from "../api/dolls.js";
+import { getDolls, createDoll, updateDoll, deleteDoll, uploadDollImage, uploadDollImages, deleteDollImage } from "../api/dolls.js";
 import { apiUrl } from "../api/client.js";
 import type { Doll } from "../types/doll.js";
 
@@ -16,6 +16,12 @@ const COLOR_OPTIONS = [
   { value: "緑", label: "緑" },
   { value: "黄", label: "黄" },
   { value: "黒", label: "黒" },
+  { value: "オレンジ", label: "オレンジ" },
+  { value: "えんじ", label: "えんじ" },
+  { value: "水色", label: "水色" },
+  { value: "ミント", label: "ミント" },
+  { value: "紫", label: "紫" },
+  { value: "赤", label: "赤" },
   { value: "その他", label: "その他" },
 ];
 
@@ -32,6 +38,10 @@ export default function DollsPage() {
   const [editName, setEditName] = useState("");
   const [editColor, setEditColor] = useState(COLOR_OPTIONS[0].value);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
+  const [editImageFiles, setEditImageFiles] = useState<File[]>([]);
+  const [editImageInputKey, setEditImageInputKey] = useState(0);
+
+  const [listVersion, setListVersion] = useState(0);
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -39,6 +49,7 @@ export default function DollsPage() {
     try {
       const list = await getDolls();
       setDolls(list);
+      setListVersion((v) => v + 1);
     } catch (e) {
       setError(e instanceof Error ? e.message : "一覧の取得に失敗しました");
     } finally {
@@ -77,6 +88,8 @@ export default function DollsPage() {
     setEditName(doll.name);
     setEditColor(doll.color);
     setEditImageFile(null);
+    setEditImageFiles([]);
+    setEditImageInputKey((k) => k + 1);
     setError(null);
   };
 
@@ -85,6 +98,7 @@ export default function DollsPage() {
     setEditName("");
     setEditColor(COLOR_OPTIONS[0].value);
     setEditImageFile(null);
+    setEditImageFiles([]);
   };
 
   const handleEditSave = async (id: string) => {
@@ -97,15 +111,29 @@ export default function DollsPage() {
       if (editImageFile) {
         await uploadDollImage(id, editImageFile);
       }
+      if (editImageFiles.length > 0) {
+        await uploadDollImages(id, editImageFiles);
+      }
       setEditingId(null);
       setEditName("");
       setEditColor(COLOR_OPTIONS[0].value);
       setEditImageFile(null);
+      setEditImageFiles([]);
       await fetchDolls();
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新に失敗しました");
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const handleDeleteDollImage = async (dollId: string, imageUrl: string) => {
+    setError(null);
+    try {
+      await deleteDollImage(dollId, imageUrl);
+      await fetchDolls();
+    } catch (e) {
+      setError(e instanceof Error ? e.message : "画像の削除に失敗しました");
     }
   };
 
@@ -235,23 +263,50 @@ export default function DollsPage() {
                         </select>
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-stone-500 mb-1">画像（任意）</label>
-                        {doll.image_url && (
-                          <div className="mb-2">
-                            <img
-                              src={apiUrl(doll.image_url)}
-                              alt={doll.name}
-                              className="h-16 w-16 object-cover rounded"
-                            />
+                        <label className="block text-xs font-medium text-stone-500 mb-1">写真（複数可・追加・削除）</label>
+                        {(doll.image_urls?.length ?? (doll.image_url ? 1 : 0)) > 0 && (
+                          <div className="mb-2 flex flex-wrap gap-2">
+                            {(doll.image_urls ?? (doll.image_url ? [doll.image_url] : [])).map((url) => (
+                              <div key={url} className="relative group">
+                                <img
+                                  src={apiUrl(url)}
+                                  alt=""
+                                  className="h-16 w-16 object-cover rounded border border-stone-200"
+                                />
+                                <button
+                                  type="button"
+                                  onClick={() => handleDeleteDollImage(doll.id, url)}
+                                  disabled={submitting}
+                                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs leading-none flex items-center justify-center hover:bg-rose-600 disabled:opacity-50"
+                                  aria-label="この写真を削除"
+                                >
+                                  ×
+                                </button>
+                              </div>
+                            ))}
                           </div>
                         )}
+                        <p className="text-xs text-stone-500 mb-1">代表画像の差し替え（1枚）</p>
                         <input
+                          key={`edit-image-${doll.id}-${editImageInputKey}`}
                           type="file"
                           accept="image/jpeg,image/png,image/gif,image/webp"
                           onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
+                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600 mb-2"
+                          disabled={submitting}
+                        />
+                        <p className="text-xs text-stone-500 mb-1">写真を追加（複数可）</p>
+                        <input
+                          type="file"
+                          accept="image/jpeg,image/png,image/gif,image/webp"
+                          multiple
+                          onChange={(e) => setEditImageFiles(e.target.files ? Array.from(e.target.files) : [])}
                           className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600"
                           disabled={submitting}
                         />
+                        {editImageFiles.length > 0 && (
+                          <p className="mt-1 text-xs text-stone-500">{editImageFiles.length}枚追加予定</p>
+                        )}
                       </div>
                       <div className="flex gap-2">
                         <button
@@ -275,9 +330,9 @@ export default function DollsPage() {
                   ) : (
                     <div className="flex items-center justify-between gap-3">
                       <div className="flex items-center gap-3 min-w-0">
-                        {doll.image_url && (
+                        {(doll.image_urls?.[0] ?? doll.image_url) && (
                           <img
-                            src={apiUrl(doll.image_url)}
+                            src={`${apiUrl(doll.image_urls?.[0] ?? doll.image_url!)}?v=${listVersion}`}
                             alt={doll.name}
                             className="h-10 w-10 object-cover rounded flex-shrink-0"
                           />

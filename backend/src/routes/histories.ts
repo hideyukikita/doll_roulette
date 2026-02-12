@@ -18,4 +18,20 @@ router.get("/", async (req: Request, res: Response) => {
   }
 });
 
+/** DELETE /api/histories/:id - 当選履歴1件削除（その結果だけ削除し、その子はルーレットに復活） */
+router.delete("/:id", async (req: Request, res: Response) => {
+  const { id } = req.params;
+  try {
+    const result = await historiesService.deleteHistoryById(id);
+    if (!result) {
+      res.status(404).json({ error: "指定の履歴が見つかりません" });
+      return;
+    }
+    res.status(204).send();
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: "履歴の削除に失敗しました" });
+  }
+});
+
 export default router;

@@ -68,7 +68,7 @@ doll_roulette/
 | パス | 役割 |
 |------|------|
 | `frontend/` | React SPA。かぞくたち一覧・登録・ルーレット・履歴・リセットのUI。`api/` で backend を呼ぶ。 |
-| `backend/src/routes/` | 例: `/api/dolls`, `/api/dolls/:id`, `/api/histories`, `/api/reset` など。 |
+| `backend/src/routes/` | 例: `/api/dolls`, `/api/dolls/:id`, `/api/outings`, `/api/histories`, `/api/roulette`, `/api/reset` など。 |
 | `backend/src/services/` | ルーレットの「未選択から1体選ぶ」「全員選択済みなら終了」などのロジック。 |
 | `backend/src/db/` | PostgreSQL 接続と、dolls / histories のスキーマ管理。 |
 | `db/init/` | Docker で postgres 起動時に流す初期スキーマ（dolls, histories テーブル）。 |
@@ -78,7 +78,7 @@ doll_roulette/
 
 ## 将来拡張を見据えた配置
 
-- **写真機能**: ✅ 実装済み。`POST /api/dolls/:id/image`、`/uploads` 静的配信、`uploads_data` ボリューム。
+- **写真機能**: ✅ 実装済み。家族は `POST /api/dolls/:id/image`（代表1枚）・`POST /api/dolls/:id/images`（複数）・`POST /api/dolls/:id/images/remove`（1枚削除）。お出かけ日記は `POST /api/outings/:id/images`・`POST /api/outings/:id/images/remove`。`/uploads` で静的配信、`uploads_data` ボリューム。
 - **認証・複数リスト（三次）**: `backend/src/` に `auth/`, `users/` などを追加しつつ、既存の `routes/` を拡張する形で対応可能。
 - **クラウドデプロイ**: `docker-compose.yml` はそのまま活かしつつ、`backend/Dockerfile` や環境変数で本番用設定を分離。
 

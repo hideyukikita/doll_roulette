@@ -8,6 +8,8 @@ export interface Doll {
   image_url: string | null;
   is_selected: boolean;
   created_at: string;
+  /** 複数画像（API が返す場合） */
+  image_urls?: string[];
 }
 
 export interface CreateDollBody {

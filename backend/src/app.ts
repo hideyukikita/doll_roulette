@@ -8,6 +8,7 @@ import dollsRouter from "./routes/dolls.js";
 import rouletteRouter from "./routes/roulette.js";
 import historiesRouter from "./routes/histories.js";
 import resetRouter from "./routes/reset.js";
+import outingsRouter from "./routes/outings.js";
 
 const app = express();
 
@@ -31,6 +32,7 @@ app.get("/", (_req, res) => {
     roulette: "/api/roulette/spin",
     histories: "/api/histories",
     reset: "/api/reset",
+    outings: "/api/outings",
   });
 });
 
@@ -46,5 +48,7 @@ app.use("/api/roulette", rouletteRouter);
 app.use("/api/histories", historiesRouter);
 // リセット API（Step 5）
 app.use("/api/reset", resetRouter);
+// お出かけ日記 API
+app.use("/api/outings", outingsRouter);
 
 export default app;

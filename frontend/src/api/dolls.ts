@@ -10,6 +10,41 @@ export async function getDolls(): Promise<Doll[]> {
   return res.json() as Promise<Doll[]>;
 }
 
+/** 複数画像をアップロード（最大50枚） */
+export async function uploadDollImages(id: string, files: File[]): Promise<Doll> {
+  if (files.length === 0) {
+    const list = await getDolls();
+    const d = list.find((x) => x.id === id);
+    if (d) return d;
+    throw new Error("かぞくの取得に失敗しました");
+  }
+  const formData = new FormData();
+  files.forEach((f) => formData.append("images", f));
+  const res = await fetch(apiUrl(`/api/dolls/${id}/images`), {
+    method: "POST",
+    body: formData,
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? "画像のアップロードに失敗しました");
+  }
+  return res.json() as Promise<Doll>;
+}
+
+/** かぞくの画像1枚削除（POST + JSON body で確実に届ける） */
+export async function deleteDollImage(dollId: string, imageUrl: string): Promise<Doll> {
+  const res = await fetch(apiUrl(`/api/dolls/${dollId}/images/remove`), {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ image_url: imageUrl }),
+  });
+  if (!res.ok) {
+    const data = (await res.json().catch(() => ({}))) as { error?: string };
+    throw new Error(data.error ?? "画像の削除に失敗しました");
+  }
+  return res.json() as Promise<Doll>;
+}
+
 export async function createDoll(body: CreateDollBody): Promise<Doll> {
   const res = await fetch(apiUrl("/api/dolls"), {
     method: "POST",

@@ -16,6 +16,12 @@ const COLOR_MAP: Record<
   緑: { color: "#34b89a" },
   黄: { color: "#ca8a04", backgroundColor: "#fefce8", borderColor: "#fde68a", segmentFill: "#fde68a" },
   黒: { color: "#44403c" },
+  オレンジ: { color: "#ea580c", segmentFill: "#fb923c" },
+  えんじ: { color: "#b91c1c", segmentFill: "#dc2626" },
+  水色: { color: "#0ea5e9", segmentFill: "#38bdf8" },
+  ミント: { color: "#14b8a6", segmentFill: "#2dd4bf" },
+  紫: { color: "#7c3aed", segmentFill: "#a78bfa" },
+  赤: { color: "#dc2626", segmentFill: "#f87171" },
   その他: { color: "#78716c" },
 };
 
@@ -35,6 +41,10 @@ const DARK_FILL_COLORS = new Set([
   "#67a3e8",
   "#34b89a",
   "#ec4899",
+  "#b91c1c",
+  "#dc2626",
+  "#7c3aed",
+  "#ea580c",
 ]);
 export function getDollSegmentTextColor(colorName?: string): string {
   const fill = getDollFillColor(colorName);
