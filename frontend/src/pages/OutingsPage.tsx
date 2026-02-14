@@ -189,6 +189,7 @@ export default function OutingsPage() {
 
   const handleDeleteOutingImage = async (imageUrl: string) => {
     if (!editingId) return;
+    if (!window.confirm("この画像を削除しますか？")) return;
     setError(null);
     try {
       const updated = await deleteOutingImage(editingId, imageUrl);
@@ -348,67 +349,93 @@ export default function OutingsPage() {
           </div>
         )}
 
+        {/* 詳細オーバーレイ（手前に表示） */}
         {detailId && detail ? (
-          <section className="bg-white rounded-lg shadow-sm p-6 mb-6">
-            <button
-              type="button"
-              onClick={() => setDetailId(null)}
-              className="text-sm text-violet-600 hover:underline mb-4"
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="outing-detail-title"
+            onClick={(e) => e.target === e.currentTarget && setDetailId(null)}
+          >
+            <div
+              className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
+              onClick={(e) => e.stopPropagation()}
             >
-              ← 一覧に戻る
-            </button>
-            <div className="flex flex-wrap items-center gap-2 mb-4">
-              <h2 className="text-xl font-bold text-stone-700">{detail.place}</h2>
-              <button
-                type="button"
-                onClick={startEdit}
-                className="rounded-md bg-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-300"
-              >
-                編集
-              </button>
-              <button
-                type="button"
-                onClick={handleDelete}
-                disabled={submitting}
-                className="rounded-md bg-rose-100 px-3 py-1.5 text-sm font-medium text-rose-700 hover:bg-rose-200 disabled:opacity-50"
-              >
-                削除
-              </button>
-            </div>
-            <p className="text-stone-500 mb-4">{formatDateOnly(detail.outing_date)}</p>
-            {detail.dolls && detail.dolls.length > 0 && (
-              <p className="text-sm text-stone-600 mb-4">
-                一緒に:{" "}
-                {detail.dolls.map((d, i) => (
-                  <span key={d.id}>
-                    {i > 0 && "、"}
-                    <span style={getDollColorStyle(d.color)}>{d.name}</span>
-                  </span>
-                ))}
-              </p>
-            )}
-            {(detail.image_urls?.length ?? 0) > 0 && (
-              <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                {(detail.image_urls ?? []).map((url, i) => (
+              <div className="p-6">
+                <div className="flex justify-between items-start mb-4">
+                  <h2 id="outing-detail-title" className="text-xl font-bold text-stone-700">
+                    {detail.place}
+                  </h2>
                   <button
-                    key={i}
                     type="button"
-                    onClick={() => setSelectedImageUrl(url)}
-                    className="block w-full aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                    onClick={() => setDetailId(null)}
+                    className="text-stone-400 hover:text-stone-600 p-1"
+                    aria-label="閉じる"
                   >
-                    <img
-                      src={apiUrl(url)}
-                      alt={`${detail.place} ${i + 1}`}
-                      className="w-full h-full object-cover"
-                    />
+                    ×
                   </button>
-                ))}
+                </div>
+                <p className="text-stone-500 mb-4">{formatDateOnly(detail.outing_date)}</p>
+                {detail.dolls && detail.dolls.length > 0 && (
+                  <p className="text-sm text-stone-600 mb-4">
+                    一緒に:{" "}
+                    {detail.dolls.map((d, i) => (
+                      <span key={d.id}>
+                        {i > 0 && "、"}
+                        <span style={getDollColorStyle(d.color)}>{d.name}</span>
+                      </span>
+                    ))}
+                  </p>
+                )}
+                {detail.comment && (
+                  <p className="text-stone-700 whitespace-pre-wrap mb-4">{detail.comment}</p>
+                )}
+                {(detail.image_urls?.length ?? 0) > 0 && (
+                  <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                    {(detail.image_urls ?? []).map((url, i) => (
+                      <button
+                        key={i}
+                        type="button"
+                        onClick={() => setSelectedImageUrl(url)}
+                        className="block w-full aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                      >
+                        <img
+                          src={apiUrl(url)}
+                          alt={`${detail.place} ${i + 1}`}
+                          className="w-full h-full object-cover"
+                        />
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
-            )}
-            {detail.comment && (
-              <p className="text-stone-700 whitespace-pre-wrap">{detail.comment}</p>
-            )}
-          </section>
+              <div className="flex gap-2 p-6 pt-0 border-t border-stone-100">
+                <button
+                  type="button"
+                  onClick={startEdit}
+                  className="flex-1 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
+                >
+                  編集
+                </button>
+                <button
+                  type="button"
+                  onClick={handleDelete}
+                  disabled={submitting}
+                  className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
+                >
+                  削除
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setDetailId(null)}
+                  className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
+                >
+                  閉じる
+                </button>
+              </div>
+            </div>
+          </div>
         ) : null}
 
         {selectedImageUrl && (

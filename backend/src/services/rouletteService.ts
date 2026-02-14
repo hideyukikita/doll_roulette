@@ -57,15 +57,18 @@ export async function spinRoulette(): Promise<SpinResponse> {
     if (!selected) throw new Error("抽選に失敗しました");
     const wasAlreadySelected = selected.is_selected;
 
-    // 当選時に表示する画像を決める（複数画像があればその中からランダム）
+    // 当選時に表示する画像を決める（代表画像・サブ画像を合わせた中からランダムで1枚）
     const imageCandidates = await client.query<{ image_url: string }>(
       "SELECT image_url FROM doll_images WHERE doll_id = $1 ORDER BY sort_order, created_at",
       [selected.id]
     ).catch(() => ({ rows: [] as { image_url: string }[] }));
-    const candidateUrls = imageCandidates.rows.map((r) => r.image_url).filter(Boolean);
+    const subUrls = imageCandidates.rows.map((r) => r.image_url).filter(Boolean);
+    const candidateUrls = selected.image_url
+      ? [selected.image_url, ...subUrls]
+      : subUrls;
     const chosenImageUrl = candidateUrls.length > 0
       ? candidateUrls[Math.floor(Math.random() * candidateUrls.length)]
-      : selected.image_url;
+      : null;
 
     await client.query("BEGIN");
     try {

@@ -42,6 +42,8 @@ export default function DollsPage() {
   const [editImageInputKey, setEditImageInputKey] = useState(0);
 
   const [listVersion, setListVersion] = useState(0);
+  /** 詳細オーバーレイで表示する子のID（null なら非表示） */
+  const [detailId, setDetailId] = useState<string | null>(null);
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -120,6 +122,7 @@ export default function DollsPage() {
       setEditImageFile(null);
       setEditImageFiles([]);
       await fetchDolls();
+      // 詳細表示中ならそのまま（一覧は更新済み）
     } catch (e) {
       setError(e instanceof Error ? e.message : "更新に失敗しました");
     } finally {
@@ -128,6 +131,7 @@ export default function DollsPage() {
   };
 
   const handleDeleteDollImage = async (dollId: string, imageUrl: string) => {
+    if (!window.confirm("この画像を削除しますか？")) return;
     setError(null);
     try {
       await deleteDollImage(dollId, imageUrl);
@@ -233,140 +237,260 @@ export default function DollsPage() {
                   key={doll.id}
                   className="rounded-md border border-stone-200 bg-stone-50 px-4 py-3"
                 >
-                  {editingId === doll.id ? (
-                    <div className="space-y-3">
-                      <div>
-                        <label className="block text-xs font-medium text-stone-500 mb-1">名前</label>
-                        <input
-                          type="text"
-                          value={editName}
-                          onChange={(e) => setEditName(e.target.value)}
-                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
-                          maxLength={255}
-                          disabled={submitting}
-                          autoFocus
-                        />
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-stone-500 mb-1">色</label>
-                        <select
-                          value={editColor}
-                          onChange={(e) => setEditColor(e.target.value)}
-                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
-                          disabled={submitting}
-                        >
-                          {COLOR_OPTIONS.map((opt) => (
-                            <option key={opt.value} value={opt.value}>
-                              {opt.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
-                      <div>
-                        <label className="block text-xs font-medium text-stone-500 mb-1">写真（複数可・追加・削除）</label>
-                        {(doll.image_urls?.length ?? (doll.image_url ? 1 : 0)) > 0 && (
-                          <div className="mb-2 flex flex-wrap gap-2">
-                            {(doll.image_urls ?? (doll.image_url ? [doll.image_url] : [])).map((url) => (
-                              <div key={url} className="relative group">
-                                <img
-                                  src={apiUrl(url)}
-                                  alt=""
-                                  className="h-16 w-16 object-cover rounded border border-stone-200"
-                                />
-                                <button
-                                  type="button"
-                                  onClick={() => handleDeleteDollImage(doll.id, url)}
-                                  disabled={submitting}
-                                  className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs leading-none flex items-center justify-center hover:bg-rose-600 disabled:opacity-50"
-                                  aria-label="この写真を削除"
-                                >
-                                  ×
-                                </button>
-                              </div>
-                            ))}
-                          </div>
-                        )}
-                        <p className="text-xs text-stone-500 mb-1">代表画像の差し替え（1枚）</p>
-                        <input
-                          key={`edit-image-${doll.id}-${editImageInputKey}`}
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
-                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600 mb-2"
-                          disabled={submitting}
-                        />
-                        <p className="text-xs text-stone-500 mb-1">写真を追加（複数可）</p>
-                        <input
-                          type="file"
-                          accept="image/jpeg,image/png,image/gif,image/webp"
-                          multiple
-                          onChange={(e) => setEditImageFiles(e.target.files ? Array.from(e.target.files) : [])}
-                          className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600"
-                          disabled={submitting}
-                        />
-                        {editImageFiles.length > 0 && (
-                          <p className="mt-1 text-xs text-stone-500">{editImageFiles.length}枚追加予定</p>
-                        )}
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditSave(doll.id)}
-                          disabled={submitting || !editName.trim()}
-                          className="rounded-md bg-violet-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
-                        >
-                          {submitting ? "保存中…" : "保存"}
-                        </button>
-                        <button
-                          type="button"
-                          onClick={handleEditCancel}
-                          disabled={submitting}
-                          className="rounded-md bg-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
-                        >
-                          キャンセル
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3 min-w-0">
-                        {(doll.image_urls?.[0] ?? doll.image_url) && (
-                          <img
-                            src={`${apiUrl(doll.image_urls?.[0] ?? doll.image_url!)}?v=${listVersion}`}
-                            alt={doll.name}
-                            className="h-10 w-10 object-cover rounded flex-shrink-0"
-                          />
-                        )}
-                        <span className="font-medium text-stone-700">
-                          {doll.name}
-                          <span className="ml-2 text-sm font-normal text-stone-500">（{doll.color}）</span>
-                        </span>
-                      </div>
-                      <div className="flex gap-2">
-                        <button
-                          type="button"
-                          onClick={() => handleEditStart(doll)}
-                          disabled={editingId !== null}
-                          className="rounded-md bg-violet-50 px-3 py-1.5 text-sm font-medium text-violet-600 hover:bg-violet-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
-                        >
-                          編集
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(doll.id)}
-                          disabled={deletingId === doll.id || editingId !== null}
-                          className="rounded-md bg-rose-50 px-3 py-1.5 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
-                        >
-                          {deletingId === doll.id ? "削除中…" : "削除"}
-                        </button>
-                      </div>
-                    </div>
-                  )}
+                  <button
+                    type="button"
+                    onClick={() => setDetailId(doll.id)}
+                    className="w-full flex items-center gap-3 min-w-0 text-left hover:bg-stone-100 rounded transition-colors"
+                  >
+                    {(doll.image_url ?? doll.image_urls?.[0]) && (
+                      <img
+                        src={`${apiUrl(doll.image_url ?? doll.image_urls?.[0]!)}?v=${listVersion}`}
+                        alt={doll.name}
+                        className="h-10 w-10 object-cover rounded flex-shrink-0"
+                      />
+                    )}
+                    <span className="font-medium text-stone-700">
+                      {doll.name}
+                      <span className="ml-2 text-sm font-normal text-stone-500">（{doll.color}）</span>
+                    </span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </section>
+
+        {/* 詳細オーバーレイ（手前に表示） */}
+        {detailId && (() => {
+          const doll = dolls.find((d) => d.id === detailId);
+          if (!doll) return null;
+          const representativeUrl = doll.image_url ?? doll.image_urls?.[0];
+          // サブ画像は doll_images 由来のみ表示（代表のみのとき image_urls に代表が含まれるため除外）
+          const subUrls = doll.image_url
+            ? (doll.image_urls ?? []).filter((u) => u !== doll.image_url)
+            : (doll.image_urls?.slice(1) ?? []);
+
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="detail-title"
+              onClick={(e) => e.target === e.currentTarget && setDetailId(null)}
+            >
+              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <h2 id="detail-title" className="sr-only">
+                  {doll.name}の詳細
+                </h2>
+                {editingId === detailId ? (
+                  <div className="p-6 space-y-4">
+                    <div className="flex justify-between items-center">
+                      <span className="text-lg font-semibold text-stone-700">編集</span>
+                      <button
+                        type="button"
+                        onClick={handleEditCancel}
+                        disabled={submitting}
+                        className="text-stone-400 hover:text-stone-600"
+                        aria-label="キャンセル"
+                      >
+                        ×
+                      </button>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-stone-500 mb-1">名前</label>
+                      <input
+                        type="text"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
+                        maxLength={255}
+                        disabled={submitting}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-stone-500 mb-1">色</label>
+                      <select
+                        value={editColor}
+                        onChange={(e) => setEditColor(e.target.value)}
+                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800 focus:border-violet-400 focus:outline-none focus:ring-1 focus:ring-violet-300"
+                        disabled={submitting}
+                      >
+                        {COLOR_OPTIONS.map((opt) => (
+                          <option key={opt.value} value={opt.value}>
+                            {opt.label}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-stone-500 mb-1">代表画像（1枚・一覧のサムネイル）</label>
+                      {(doll.image_url ?? doll.image_urls?.[0]) && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          <div className="relative group">
+                            <img
+                              src={apiUrl(doll.image_url ?? doll.image_urls?.[0]!)}
+                              alt="代表"
+                              className="h-16 w-16 object-cover rounded border border-stone-200"
+                            />
+                            <button
+                              type="button"
+                              onClick={() => handleDeleteDollImage(doll.id, doll.image_url ?? doll.image_urls?.[0]!)}
+                              disabled={submitting}
+                              className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs leading-none flex items-center justify-center hover:bg-rose-600 disabled:opacity-50"
+                              aria-label="代表画像を削除"
+                            >
+                              ×
+                            </button>
+                          </div>
+                        </div>
+                      )}
+                      <input
+                        key={`edit-image-${doll.id}-${editImageInputKey}`}
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        onChange={(e) => setEditImageFile(e.target.files?.[0] ?? null)}
+                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600 mb-4"
+                        disabled={submitting}
+                      />
+                      <label className="block text-xs font-medium text-stone-500 mb-1">サブ画像（複数・ルーレット用）</label>
+                      {(doll.image_url ? (doll.image_urls ?? []).filter((u) => u !== doll.image_url) : (doll.image_urls?.slice(1) ?? [])).length > 0 && (
+                        <div className="mb-2 flex flex-wrap gap-2">
+                          {(doll.image_url ? (doll.image_urls ?? []).filter((u) => u !== doll.image_url) : (doll.image_urls?.slice(1) ?? [])).map((url) => (
+                            <div key={url} className="relative group">
+                              <img
+                                src={apiUrl(url)}
+                                alt=""
+                                className="h-16 w-16 object-cover rounded border border-stone-200"
+                              />
+                              <button
+                                type="button"
+                                onClick={() => handleDeleteDollImage(doll.id, url)}
+                                disabled={submitting}
+                                className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-rose-500 text-white text-xs leading-none flex items-center justify-center hover:bg-rose-600 disabled:opacity-50"
+                                aria-label="このサブ画像を削除"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <p className="text-xs text-stone-500 mb-1">サブ画像を追加（複数可・一覧の画像は変わりません）</p>
+                      <input
+                        type="file"
+                        accept="image/jpeg,image/png,image/gif,image/webp"
+                        multiple
+                        onChange={(e) => setEditImageFiles(e.target.files ? Array.from(e.target.files) : [])}
+                        className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600"
+                        disabled={submitting}
+                      />
+                      {editImageFiles.length > 0 && (
+                        <p className="mt-1 text-xs text-stone-500">{editImageFiles.length}枚追加予定</p>
+                      )}
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        type="button"
+                        onClick={() => handleEditSave(doll.id)}
+                        disabled={submitting || !editName.trim()}
+                        className="rounded-md bg-violet-500 px-3 py-1.5 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
+                      >
+                        {submitting ? "保存中…" : "保存"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={handleEditCancel}
+                        disabled={submitting}
+                        className="rounded-md bg-stone-200 px-3 py-1.5 text-sm font-medium text-stone-600 hover:bg-stone-300 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
+                      >
+                        キャンセル
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    <div className="p-6">
+                      <div className="flex justify-between items-start mb-4">
+                        <div>
+                          <p className="text-xl font-semibold text-stone-800">{doll.name}</p>
+                          <p className="text-stone-500">{doll.color}</p>
+                        </div>
+                        <button
+                          type="button"
+                          onClick={() => setDetailId(null)}
+                          className="text-stone-400 hover:text-stone-600 p-1"
+                          aria-label="閉じる"
+                        >
+                          ×
+                        </button>
+                      </div>
+                      <div className="space-y-4">
+                        <div>
+                          <p className="text-xs font-medium text-stone-500 mb-2">代表画像</p>
+                          {representativeUrl ? (
+                            <img
+                              src={apiUrl(representativeUrl)}
+                              alt={`${doll.name}の代表画像`}
+                              className="w-full max-h-48 object-contain rounded-lg border border-stone-200 bg-stone-50"
+                            />
+                          ) : (
+                            <div className="w-full h-32 rounded-lg border border-dashed border-stone-300 bg-stone-50 flex items-center justify-center text-stone-400 text-sm">
+                              画像なし
+                            </div>
+                          )}
+                        </div>
+                        <div>
+                          <p className="text-xs font-medium text-stone-500 mb-2">サブ画像</p>
+                          {subUrls.length > 0 ? (
+                            <div className="flex flex-wrap gap-2">
+                              {subUrls.map((url) => (
+                                <img
+                                  key={url}
+                                  src={apiUrl(url)}
+                                  alt=""
+                                  className="h-20 w-20 object-cover rounded border border-stone-200"
+                                />
+                              ))}
+                            </div>
+                          ) : (
+                            <p className="text-sm text-stone-400">サブ画像はありません</p>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                    <div className="flex gap-2 p-6 pt-0 border-t border-stone-100">
+                      <button
+                        type="button"
+                        onClick={() => handleEditStart(doll)}
+                        className="flex-1 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
+                      >
+                        編集
+                      </button>
+                      <button
+                        type="button"
+                        onClick={async () => {
+                          await handleDelete(doll.id);
+                          setDetailId(null);
+                        }}
+                        disabled={deletingId === doll.id}
+                        className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
+                      >
+                        {deletingId === doll.id ? "削除中…" : "削除"}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => setDetailId(null)}
+                        className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
+                      >
+                        閉じる
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
