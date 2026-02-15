@@ -12,7 +12,6 @@ router.post("/spin", async (_req: Request, res: Response) => {
     const result = await rouletteService.spinRoulette();
     res.json(result);
   } catch (err) {
-    console.error(err);
     const message = err instanceof Error ? err.message : "ルーレットに失敗しました";
     res.status(500).json({ error: message });
   }

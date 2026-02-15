@@ -108,7 +108,6 @@ export async function updateOutingImage(id: string, imageUrl: string): Promise<O
 /** 複数画像を追加（outing_images に挿入） */
 export async function addOutingImages(outingId: string, imageUrls: { url: string; sortOrder: number }[]): Promise<void> {
   if (imageUrls.length === 0) return;
-  console.log("[outingsService.addOutingImages] outingId=%s count=%s", outingId, imageUrls.length);
   const client = await pool.connect();
   try {
     for (let i = 0; i < imageUrls.length; i++) {
@@ -119,8 +118,6 @@ export async function addOutingImages(outingId: string, imageUrls: { url: string
       );
     }
   } catch (err) {
-    console.error("[outingsService.addOutingImages] error:", err);
-    console.error("[outingsService.addOutingImages] stack:", err instanceof Error ? err.stack : "");
     throw err;
   } finally {
     client.release();
@@ -129,29 +126,24 @@ export async function addOutingImages(outingId: string, imageUrls: { url: string
 
 /** 1枚削除（outing_images から削除。なければ outings.image_url を null に＝1枚だけのレガシー対応） */
 export async function deleteOutingImage(outingId: string, imageUrl: string): Promise<boolean> {
-  console.log("[outingsService.deleteOutingImage] outingId=%s imageUrl=%s", outingId, imageUrl);
   try {
     const result = await pool.query(
       "DELETE FROM outing_images WHERE outing_id = $1 AND image_url = $2",
       [outingId, imageUrl]
     );
     const n = result.rowCount ?? 0;
-    console.log("[outingsService.deleteOutingImage] outing_images rowCount=%s", n);
     if (n > 0) return true;
     const row = await pool.query<{ image_url: string | null }>(
       "SELECT image_url FROM outings WHERE id = $1",
       [outingId]
     );
     const currentUrl = row.rows[0]?.image_url ?? null;
-    console.log("[outingsService.deleteOutingImage] outings.image_url=%s", currentUrl);
     if (currentUrl === imageUrl) {
       await pool.query("UPDATE outings SET image_url = NULL WHERE id = $1", [outingId]);
       return true;
     }
     return false;
   } catch (err) {
-    console.error("[outingsService.deleteOutingImage] error:", err);
-    console.error("[outingsService.deleteOutingImage] stack:", err instanceof Error ? err.stack : "");
     throw err;
   }
 }

@@ -13,7 +13,6 @@ router.get("/", async (req: Request, res: Response) => {
     const list = await historiesService.getHistories(limit);
     res.json(list);
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "履歴の取得に失敗しました" });
   }
 });
@@ -29,7 +28,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
     }
     res.status(204).send();
   } catch (err) {
-    console.error(err);
     res.status(500).json({ error: "履歴の削除に失敗しました" });
   }
 });

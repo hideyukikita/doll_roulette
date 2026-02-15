@@ -50,7 +50,6 @@ router.get("/", async (_req: Request, res: Response) => {
       res.json([]);
       return;
     }
-    console.error(err);
     res.status(500).json({ error: "一覧の取得に失敗しました" });
   }
 });
@@ -71,7 +70,6 @@ router.get("/:id", async (req: Request, res: Response) => {
       res.status(404).json({ error: "指定のお出かけ日記が見つかりません" });
       return;
     }
-    console.error(err);
     res.status(500).json({ error: "取得に失敗しました" });
   }
 });
@@ -100,7 +98,6 @@ router.put("/:id", async (req: Request, res: Response) => {
     }
     res.json(updated);
   } catch (err) {
-    console.error("Outing update error:", err);
     const msg = err instanceof Error ? err.message : String(err);
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
     const userMessage = msg?.includes("foreign key") || code === "23503"
@@ -129,7 +126,6 @@ router.post("/", async (req: Request, res: Response) => {
     });
     res.status(201).json(outing);
   } catch (err) {
-    console.error("Outing create error:", err);
     const msg = err instanceof Error ? err.message : String(err);
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
     let userMessage = "登録に失敗しました";
@@ -149,25 +145,19 @@ router.post("/:id/images/remove", async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body as { image_url?: string };
   const imageUrl = typeof body?.image_url === "string" ? body.image_url.trim() : "";
-  console.log("[outings/images/remove] id=%s body=%s imageUrl=%s", id, JSON.stringify(body), imageUrl);
   if (!imageUrl) {
-    console.error("[outings/images/remove] missing image_url");
     res.status(400).json({ error: "image_url を指定してください" });
     return;
   }
   try {
     const deleted = await outingsService.deleteOutingImage(id, imageUrl);
-    console.log("[outings/images/remove] deleted=%s", deleted);
     if (!deleted) {
-      console.error("[outings/images/remove] no row deleted for id=%s imageUrl=%s", id, imageUrl);
       res.status(404).json({ error: "指定の画像が見つかりません" });
       return;
     }
     const updated = await outingsService.getOutingById(id);
     res.json(updated);
   } catch (err) {
-    console.error("[outings/images/remove] error:", err);
-    console.error("[outings/images/remove] stack:", err instanceof Error ? err.stack : "");
     res.status(500).json({ error: "画像の削除に失敗しました" });
   }
 });
@@ -179,8 +169,6 @@ router.post(
   (req: Request, res: Response, next: () => void) => {
     upload.array("images", maxImages)(req, res, (err: unknown) => {
       if (err) {
-        console.error("[outings/images] multer error:", err);
-        console.error("[outings/images] multer stack:", err instanceof Error ? err.stack : "");
         res.status(400).json({ error: err instanceof Error ? err.message : "画像のアップロードに失敗しました" });
         return;
       }
@@ -190,25 +178,19 @@ router.post(
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[] | undefined;
-    console.log("[outings/images] id=%s filesCount=%s filenames=%s", id, files?.length ?? 0, files?.map((f) => f.filename).join(",") ?? "");
     if (!files?.length) {
-      console.error("[outings/images] no files in request");
       res.status(400).json({ error: "画像ファイルを1枚以上選択してください" });
       return;
     }
     try {
       const imageUrls = files.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i }));
-      console.log("[outings/images] inserting urls=%s", JSON.stringify(imageUrls));
       await outingsService.addOutingImages(id, imageUrls);
       const updated = await outingsService.getOutingById(id);
-      console.log("[outings/images] success id=%s imageCount=%s", id, updated?.image_urls?.length ?? 0);
       res.json(updated);
     } catch (err) {
       (files || []).forEach((f) => {
         if (f.path && fs.existsSync(f.path)) fs.unlink(f.path, () => {});
       });
-      console.error("[outings/images] error:", err);
-      console.error("[outings/images] stack:", err instanceof Error ? err.stack : "");
       const msg = err instanceof Error ? err.message : String(err);
       const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
       let userMessage = "画像のアップロードに失敗しました";
@@ -250,7 +232,6 @@ router.post(
       if (req.file?.path && fs.existsSync(req.file.path)) {
         fs.unlink(req.file.path, () => {});
       }
-      console.error(err);
       res.status(500).json({ error: "画像のアップロードに失敗しました" });
     }
   }
@@ -267,7 +248,6 @@ router.delete("/:id", async (req: Request, res: Response) => {
     }
     res.status(204).send();
   } catch (err) {
-    console.error("Outing delete error:", err);
     res.status(500).json({ error: "削除に失敗しました" });
   }
 });

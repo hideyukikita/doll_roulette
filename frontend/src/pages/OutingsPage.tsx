@@ -158,12 +158,13 @@ export default function OutingsPage() {
     setFormDollIds(detail.doll_ids ?? []);
     setFormImageFiles([]);
     setEditingId(detail.id);
-    setShowForm(true);
+    // オーバーレイ内で編集するため showForm は触らない
   };
 
   const cancelEdit = () => {
     setEditingId(null);
     setShowForm(false);
+    // オーバーレイ内でキャンセルした場合は detailId はそのまま（詳細表示に戻る）
   };
 
   const handleDelete = async () => {
@@ -356,84 +357,97 @@ export default function OutingsPage() {
             role="dialog"
             aria-modal="true"
             aria-labelledby="outing-detail-title"
-            onClick={(e) => e.target === e.currentTarget && setDetailId(null)}
+            onClick={(e) => e.target === e.currentTarget && (editingId === detailId ? cancelEdit() : setDetailId(null))}
           >
             <div
               className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
-              <div className="p-6">
-                <div className="flex justify-between items-start mb-4">
-                  <h2 id="outing-detail-title" className="text-xl font-bold text-stone-700">
-                    {detail.place}
-                  </h2>
-                  <button
-                    type="button"
-                    onClick={() => setDetailId(null)}
-                    className="text-stone-400 hover:text-stone-600 p-1"
-                    aria-label="閉じる"
-                  >
-                    ×
-                  </button>
-                </div>
-                <p className="text-stone-500 mb-4">{formatDateOnly(detail.outing_date)}</p>
-                {detail.dolls && detail.dolls.length > 0 && (
-                  <p className="text-sm text-stone-600 mb-4">
-                    一緒に:{" "}
-                    {detail.dolls.map((d, i) => (
-                      <span key={d.id}>
-                        {i > 0 && "、"}
-                        <span style={getDollColorStyle(d.color)}>{d.name}</span>
-                      </span>
-                    ))}
-                  </p>
-                )}
-                {detail.comment && (
-                  <p className="text-stone-700 whitespace-pre-wrap mb-4">{detail.comment}</p>
-                )}
-                {(detail.image_urls?.length ?? 0) > 0 && (
-                  <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {(detail.image_urls ?? []).map((url, i) => (
-                      <button
-                        key={i}
-                        type="button"
-                        onClick={() => setSelectedImageUrl(url)}
-                        className="block w-full aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
-                      >
-                        <img
-                          src={apiUrl(url)}
-                          alt={`${detail.place} ${i + 1}`}
-                          className="w-full h-full object-cover"
-                        />
-                      </button>
-                    ))}
+              {editingId === detailId ? (
+                <div className="p-6">
+                  <div className="flex justify-between items-center mb-4">
+                    <h2 id="outing-detail-title" className="text-lg font-semibold text-stone-700">編集</h2>
+                    <button type="button" onClick={cancelEdit} disabled={submitting} className="text-stone-400 hover:text-stone-600 p-1" aria-label="キャンセル">×</button>
                   </div>
-                )}
-              </div>
-              <div className="flex gap-2 p-6 pt-0 border-t border-stone-100">
-                <button
-                  type="button"
-                  onClick={startEdit}
-                  className="flex-1 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2"
-                >
-                  編集
-                </button>
-                <button
-                  type="button"
-                  onClick={handleDelete}
-                  disabled={submitting}
-                  className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
-                >
-                  削除
-                </button>
-                <button
-                  type="button"
-                  onClick={() => setDetailId(null)}
-                  className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
-                >
-                  閉じる
-                </button>
-              </div>
+                  <form onSubmit={handleSubmit} className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">場所</label>
+                      <input type="text" value={formPlace} onChange={(e) => setFormPlace(e.target.value)} placeholder="例: 近所の公園" className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800" required disabled={submitting} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">日付</label>
+                      <input type="date" value={formDate} onChange={(e) => setFormDate(e.target.value)} className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800" required disabled={submitting} />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">どの家族と（複数可）</label>
+                      <div className="flex flex-wrap gap-2">
+                        {dolls.map((d) => (
+                          <label key={d.id} className="inline-flex items-center gap-1 cursor-pointer">
+                            <input type="checkbox" checked={formDollIds.includes(d.id)} onChange={() => toggleDoll(d.id)} disabled={submitting} className="rounded border-stone-300" />
+                            <span className="text-sm" style={getDollColorStyle(d.color)}>{d.name}</span>
+                          </label>
+                        ))}
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">写真（追加・削除）</label>
+                      {detail.image_urls && detail.image_urls.length > 0 && (
+                        <div className="mb-3 flex flex-wrap gap-2">
+                          {detail.image_urls.map((url) => (
+                            <div key={url} className="relative group">
+                              <img src={apiUrl(url)} alt="" className="h-20 w-20 object-cover rounded border border-stone-200" />
+                              <button type="button" onClick={() => handleDeleteOutingImage(url)} disabled={submitting} className="absolute -top-1 -right-1 h-6 w-6 rounded-full bg-rose-500 text-white text-sm leading-none flex items-center justify-center hover:bg-rose-600 disabled:opacity-50" aria-label="この写真を削除">×</button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                      <input type="file" accept="image/jpeg,image/png,image/gif,image/webp" multiple onChange={(e) => setFormImageFiles(e.target.files ? Array.from(e.target.files) : [])} className="w-full rounded-md border border-stone-300 px-3 py-2 text-sm text-stone-600 file:mr-4 file:rounded file:border-0 file:bg-violet-50 file:px-4 file:py-2 file:text-sm file:font-medium file:text-violet-600" disabled={submitting} />
+                      {formImageFiles.length > 0 && <p className="mt-1 text-xs text-stone-500">{formImageFiles.length}枚追加予定</p>}
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-stone-600 mb-1">コメント（任意）</label>
+                      <textarea value={formComment} onChange={(e) => setFormComment(e.target.value)} placeholder="思い出メモ" rows={3} className="w-full rounded-md border border-stone-300 px-3 py-2 text-stone-800" disabled={submitting} />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="submit" disabled={submitting} className="rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 disabled:opacity-50">更新する</button>
+                      <button type="button" onClick={cancelEdit} disabled={submitting} className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300">キャンセル</button>
+                    </div>
+                  </form>
+                </div>
+              ) : (
+                <>
+                  <div className="p-6">
+                    <div className="flex justify-between items-start mb-4">
+                      <h2 id="outing-detail-title" className="text-xl font-bold text-stone-700">{detail.place}</h2>
+                      <button type="button" onClick={() => setDetailId(null)} className="text-stone-400 hover:text-stone-600 p-1" aria-label="閉じる">×</button>
+                    </div>
+                    <p className="text-stone-500 mb-4">{formatDateOnly(detail.outing_date)}</p>
+                    {detail.dolls && detail.dolls.length > 0 && (
+                      <p className="text-sm text-stone-600 mb-4">
+                        一緒に:{" "}
+                        {detail.dolls.map((d, i) => (
+                          <span key={d.id}>{i > 0 && "、"}<span style={getDollColorStyle(d.color)}>{d.name}</span></span>
+                        ))}
+                      </p>
+                    )}
+                    {detail.comment && <p className="text-stone-700 whitespace-pre-wrap mb-4">{detail.comment}</p>}
+                    {(detail.image_urls?.length ?? 0) > 0 && (
+                      <div className="mb-4 grid grid-cols-2 sm:grid-cols-3 gap-2">
+                        {(detail.image_urls ?? []).map((url, i) => (
+                          <button key={i} type="button" onClick={() => setSelectedImageUrl(url)} className="block w-full aspect-square rounded-lg overflow-hidden focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2">
+                            <img src={apiUrl(url)} alt={`${detail.place} ${i + 1}`} className="w-full h-full object-cover" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  <div className="flex gap-2 p-6 pt-0 border-t border-stone-100">
+                    <button type="button" onClick={startEdit} className="flex-1 rounded-md bg-violet-500 px-4 py-2 text-sm font-medium text-white hover:bg-violet-600 focus:outline-none focus:ring-2 focus:ring-violet-300 focus:ring-offset-2">編集</button>
+                    <button type="button" onClick={handleDelete} disabled={submitting} className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2">削除</button>
+                    <button type="button" onClick={() => setDetailId(null)} className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2">閉じる</button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         ) : null}

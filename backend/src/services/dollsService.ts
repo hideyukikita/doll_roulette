@@ -92,7 +92,6 @@ export async function deleteDoll(id: string): Promise<boolean> {
 /** 複数画像を追加（doll_images に挿入） */
 export async function addDollImages(dollId: string, imageUrls: { url: string; sortOrder: number }[]): Promise<void> {
   if (imageUrls.length === 0) return;
-  console.log("[dollsService.addDollImages] dollId=%s count=%s", dollId, imageUrls.length);
   for (let i = 0; i < imageUrls.length; i++) {
     const { url, sortOrder } = imageUrls[i];
     try {
@@ -101,8 +100,6 @@ export async function addDollImages(dollId: string, imageUrls: { url: string; so
         [dollId, url, sortOrder]
       );
     } catch (err) {
-      console.error("[dollsService.addDollImages] INSERT error:", err);
-      console.error("[dollsService.addDollImages] stack:", err instanceof Error ? err.stack : "");
       throw err;
     }
   }
@@ -110,29 +107,24 @@ export async function addDollImages(dollId: string, imageUrls: { url: string; so
 
 /** 1枚削除（doll_images から削除。なければ dolls.image_url を null に＝従来の1枚のみのケース） */
 export async function deleteDollImage(dollId: string, imageUrl: string): Promise<boolean> {
-  console.log("[dollsService.deleteDollImage] dollId=%s imageUrl=%s", dollId, imageUrl);
   try {
     const result = await pool.query(
       "DELETE FROM doll_images WHERE doll_id = $1 AND image_url = $2",
       [dollId, imageUrl]
     );
     const n = result.rowCount ?? 0;
-    console.log("[dollsService.deleteDollImage] doll_images rowCount=%s", n);
     if (n > 0) return true;
     const row = await pool.query<{ image_url: string | null }>(
       "SELECT image_url FROM dolls WHERE id = $1",
       [dollId]
     );
     const currentUrl = row.rows[0]?.image_url ?? null;
-    console.log("[dollsService.deleteDollImage] dolls.image_url=%s", currentUrl);
     if (currentUrl === imageUrl) {
       await pool.query("UPDATE dolls SET image_url = NULL WHERE id = $1", [dollId]);
       return true;
     }
     return false;
   } catch (err) {
-    console.error("[dollsService.deleteDollImage] error:", err);
-    console.error("[dollsService.deleteDollImage] stack:", err instanceof Error ? err.stack : "");
     throw err;
   }
 }

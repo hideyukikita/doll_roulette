@@ -2,7 +2,7 @@
 
 飼っているぬいぐるみたちを平等に選び、一緒に寝る子を楽しく決めるアプリです。
 
-**実行環境**: WSL2 (Ubuntu) / Windows 上の Linux で動作します。
+**完成版**。WSL2 (Ubuntu) / Windows 上の Linux で動作します。
 
 ---
 
@@ -59,6 +59,26 @@ docker compose up -d
 
 - **フロントエンド**: http://localhost:5173
 - **API**: http://localhost:3000
+
+### 5. コードを変えたあと、最新が動くようにする
+
+フロントは `npm run dev`（Vite）で動いているので、ファイルを保存すると**自動で反映**されます。変わらないときは次を試してください。
+
+1. **ブラウザの強制再読み込み**  
+   - Windows: `Ctrl + Shift + R`（Mac: `Cmd + Shift + R`）  
+   - または開発者ツールを開いた状態でリロードボタンを長押し → 「キャッシュの消去とハードの再読み込み」
+
+2. **フロントコンテナの再起動**  
+   ```bash
+   docker compose restart frontend
+   ```
+   再起動後、もう一度 http://localhost:5173 を開く。
+
+3. **全部やり直す場合**  
+   ```bash
+   docker compose down
+   docker compose up -d
+   ```
 
 ---
 
@@ -173,10 +193,9 @@ http://192.168.1.100:5173
 
 ## ドキュメント
 
-- [design.md](docs/design.md) - 開発計画・仕様
+- [design.md](docs/design.md) - 仕様・技術スタック
 - [folder-structure.md](docs/folder-structure.md) - フォルダ構成
-- [STATUS.md](docs/STATUS.md) - 実装状況
-- [step1-verify.md](docs/step1-verify.md) - 動作確認手順（ファイアウォール設定など詳細あり）
+- [STATUS.md](docs/STATUS.md) - 機能一覧・API・DB
 
 ## スクリプト
 

@@ -177,7 +177,6 @@ export default function RoulettePage() {
     } catch (e) {
       const msg = e instanceof Error ? e.message : "リセットに失敗しました";
       setError(msg);
-      console.error("Reset error:", e);
     } finally {
       setResetting(false);
     }

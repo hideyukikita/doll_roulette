@@ -17,7 +17,6 @@ router.post("/", async (_req: Request, res: Response) => {
     const count = await resetService.resetAllSelected();
     res.json({ ok: true, resetCount: count });
   } catch (err) {
-    console.error("Reset error:", err);
     res.status(500).json({ error: "リセットに失敗しました" });
   }
 });
