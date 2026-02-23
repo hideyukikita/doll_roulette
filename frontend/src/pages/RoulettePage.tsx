@@ -44,6 +44,10 @@ export default function RoulettePage() {
   const [spinningMessage, setSpinningMessage] = useState("");
   const [resultMessage, setResultMessage] = useState("");
   const [deletingHistoryId, setDeletingHistoryId] = useState<string | null>(null);
+  /** 詳細オーバーレイで表示する履歴のID（null なら非表示） */
+  const [detailHistoryId, setDetailHistoryId] = useState<string | null>(null);
+  /** 画像タップ時に全体表示するURL */
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
   const resultTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const resultRef = useRef<Doll | null>(null);
 
@@ -341,39 +345,140 @@ export default function RoulettePage() {
           ) : (
             <ul className="space-y-2">
               {histories.map((h) => (
-                <li key={h.id} className="flex justify-between items-center text-sm text-stone-600 gap-2">
-                  <div className="flex items-center gap-2 min-w-0">
-                    {h.doll_image_url && (
-                      <img
-                        src={apiUrl(h.doll_image_url)}
-                        alt={h.doll_name}
-                        className="h-8 w-8 object-cover rounded flex-shrink-0"
-                      />
-                    )}
-                    <span
-                      className="font-medium inline-block px-2 py-0.5 rounded"
-                      style={getDollColorStyle(h.doll_color ?? "")}
-                    >
-                      {h.doll_name}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 flex-shrink-0">
-                    <span className="text-stone-500">{formatDate(h.selected_at)}</span>
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteHistory(h.id)}
-                      disabled={deletingHistoryId === h.id}
-                      className="rounded px-2 py-1 text-xs font-medium text-rose-600 hover:bg-rose-50 disabled:opacity-50"
-                      title="この結果を削除（その子はルーレットに戻る）"
-                    >
-                      {deletingHistoryId === h.id ? "削除中…" : "削除"}
-                    </button>
-                  </div>
+                <li key={h.id}>
+                  <button
+                    type="button"
+                    onClick={() => setDetailHistoryId(h.id)}
+                    className="w-full flex justify-between items-center text-sm text-stone-600 gap-2 rounded-lg border border-stone-200 bg-stone-50 px-3 py-2 hover:bg-stone-100 text-left"
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      {h.doll_image_url && (
+                        <img
+                          src={apiUrl(h.doll_image_url)}
+                          alt={h.doll_name}
+                          className="h-8 w-8 object-cover rounded flex-shrink-0"
+                        />
+                      )}
+                      <span
+                        className="font-medium inline-block px-2 py-0.5 rounded"
+                        style={getDollColorStyle(h.doll_color ?? "")}
+                      >
+                        {h.doll_name}
+                      </span>
+                    </div>
+                    <span className="text-stone-500 flex-shrink-0">{formatDate(h.selected_at)}</span>
+                  </button>
                 </li>
               ))}
             </ul>
           )}
         </section>
+
+        {/* 当選履歴 詳細オーバーレイ */}
+        {detailHistoryId && (() => {
+          const h = histories.find((x) => x.id === detailHistoryId);
+          if (!h) return null;
+          return (
+            <div
+              className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="history-detail-title"
+              onClick={(e) => e.target === e.currentTarget && setDetailHistoryId(null)}
+            >
+              <div className="bg-white rounded-xl shadow-xl max-w-lg w-full max-h-[90vh] overflow-y-auto" onClick={(e) => e.stopPropagation()}>
+                <h2 id="history-detail-title" className="sr-only">
+                  {h.doll_name}の当選詳細
+                </h2>
+                <div className="p-6">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <p
+                        className="text-xl font-semibold inline-block px-2 py-1 rounded"
+                        style={getDollColorStyle(h.doll_color ?? "")}
+                      >
+                        {h.doll_name}
+                      </p>
+                      <p className="text-stone-500 mt-1">{formatDate(h.selected_at)}</p>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() => setDetailHistoryId(null)}
+                      className="text-stone-400 hover:text-stone-600 p-1"
+                      aria-label="閉じる"
+                    >
+                      ×
+                    </button>
+                  </div>
+                  {h.doll_image_url ? (
+                    <button
+                      type="button"
+                      onClick={() => setSelectedImageUrl(h.doll_image_url)}
+                      className="block w-full rounded-lg border border-stone-200 bg-stone-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                    >
+                      <img
+                        src={apiUrl(h.doll_image_url)}
+                        alt={h.doll_name}
+                        className="w-full max-h-64 object-contain rounded-lg"
+                      />
+                    </button>
+                  ) : (
+                    <div className="w-full h-40 rounded-lg border border-dashed border-stone-300 bg-stone-50 flex items-center justify-center text-stone-400 text-sm">
+                      画像なし
+                    </div>
+                  )}
+                </div>
+                <div className="flex gap-2 p-6 pt-0 border-t border-stone-100">
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await handleDeleteHistory(h.id);
+                      setDetailHistoryId(null);
+                    }}
+                    disabled={deletingHistoryId === h.id}
+                    className="rounded-md bg-rose-50 px-4 py-2 text-sm font-medium text-rose-600 hover:bg-rose-100 disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-rose-300 focus:ring-offset-2"
+                  >
+                    {deletingHistoryId === h.id ? "削除中…" : "削除"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setDetailHistoryId(null)}
+                    className="rounded-md bg-stone-200 px-4 py-2 text-sm font-medium text-stone-600 hover:bg-stone-300 focus:outline-none focus:ring-2 focus:ring-stone-400 focus:ring-offset-2"
+                  >
+                    閉じる
+                  </button>
+                </div>
+              </div>
+            </div>
+          );
+        })()}
+
+        {selectedImageUrl && (
+          <div
+            className="fixed inset-0 z-[60] flex items-center justify-center bg-black/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="画像を拡大表示"
+            onClick={() => setSelectedImageUrl(null)}
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedImageUrl(null)}
+              className="absolute top-4 right-4 rounded-full bg-white/90 p-2 text-stone-600 hover:bg-white"
+              aria-label="閉じる"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={apiUrl(selectedImageUrl)}
+              alt="拡大表示"
+              className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
       </div>
     </div>
   );

@@ -44,6 +44,8 @@ export default function DollsPage() {
   const [listVersion, setListVersion] = useState(0);
   /** 詳細オーバーレイで表示する子のID（null なら非表示） */
   const [detailId, setDetailId] = useState<string | null>(null);
+  /** 詳細内で画像タップ時に全体表示するURL（お出かけ日記と同様） */
+  const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -428,11 +430,17 @@ export default function DollsPage() {
                         <div>
                           <p className="text-xs font-medium text-stone-500 mb-2">代表画像</p>
                           {representativeUrl ? (
-                            <img
-                              src={apiUrl(representativeUrl)}
-                              alt={`${doll.name}の代表画像`}
-                              className="w-full max-h-48 object-contain rounded-lg border border-stone-200 bg-stone-50"
-                            />
+                            <button
+                              type="button"
+                              onClick={() => setSelectedImageUrl(representativeUrl)}
+                              className="block w-full rounded-lg border border-stone-200 bg-stone-50 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                            >
+                              <img
+                                src={apiUrl(representativeUrl)}
+                                alt={`${doll.name}の代表画像`}
+                                className="w-full max-h-48 object-contain rounded-lg"
+                              />
+                            </button>
                           ) : (
                             <div className="w-full h-32 rounded-lg border border-dashed border-stone-300 bg-stone-50 flex items-center justify-center text-stone-400 text-sm">
                               画像なし
@@ -444,12 +452,18 @@ export default function DollsPage() {
                           {subUrls.length > 0 ? (
                             <div className="flex flex-wrap gap-2">
                               {subUrls.map((url) => (
-                                <img
+                                <button
                                   key={url}
-                                  src={apiUrl(url)}
-                                  alt=""
-                                  className="h-20 w-20 object-cover rounded border border-stone-200"
-                                />
+                                  type="button"
+                                  onClick={() => setSelectedImageUrl(url)}
+                                  className="rounded border border-stone-200 focus:outline-none focus:ring-2 focus:ring-violet-400 focus:ring-offset-2"
+                                >
+                                  <img
+                                    src={apiUrl(url)}
+                                    alt=""
+                                    className="h-20 w-20 object-cover rounded"
+                                  />
+                                </button>
                               ))}
                             </div>
                           ) : (
@@ -491,6 +505,34 @@ export default function DollsPage() {
             </div>
           );
         })()}
+
+        {selectedImageUrl && (
+          <div
+            className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 p-4"
+            role="dialog"
+            aria-modal="true"
+            aria-label="画像を拡大表示"
+            onClick={() => setSelectedImageUrl(null)}
+          >
+            <button
+              type="button"
+              onClick={() => setSelectedImageUrl(null)}
+              className="absolute top-4 right-4 rounded-full bg-white/90 p-2 text-stone-600 hover:bg-white"
+              aria-label="閉じる"
+            >
+              <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+            <img
+              src={apiUrl(selectedImageUrl)}
+              alt="拡大表示"
+              className="max-w-full max-h-[90vh] w-auto h-auto object-contain rounded"
+              onClick={(e) => e.stopPropagation()}
+            />
+          </div>
+        )}
+
       </div>
     </div>
   );

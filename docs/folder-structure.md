@@ -1,92 +1,124 @@
-# フォルダ構成案（design.md に基づく）
+# フォルダ・ディレクトリ構成
 
-## 方針
-- **3コンテナ構成**（frontend / backend / postgres）に対応したディレクトリ分離
-- フロント・バック・インフラを明確に分け、ロードマップの Step 1〜5 と将来拡張に対応しやすい構成
+**完成版**。実装に基づく現在の構成です。
 
 ---
 
-## 推奨ルート構成
+## ルート構成
 
 ```
 doll_roulette/
-├── docker-compose.yml          # 3コンテナ（frontend, backend, db）定義
-├── .env.example                # 環境変数テンプレ（DB接続など）
+├── docker-compose.yml          # 3コンテナ（db, backend, frontend）定義
+├── .env.example                # 環境変数テンプレ（DB接続・VITE_API_BASE_URL 等）
 ├── .gitignore
 │
-├── frontend/                   # React + Vite + Tailwind（コンテナ or 開発時はホスト実行）
-│   ├── package.json
-│   ├── vite.config.ts          # server: { host: true } を設定
-│   ├── tsconfig.json
-│   ├── tailwind.config.js
-│   ├── index.html
-│   ├── public/
-│   └── src/
-│       ├── main.tsx
-│       ├── App.tsx
-│       ├── index.css
-│       ├── api/                # API クライアント（backend 呼び出し）
-│       ├── components/         # 共通UI（ボタン、カードなど）
-│       ├── pages/              # 画面単位（一覧、登録、ルーレット、履歴など）
-│       ├── hooks/              # カスタムフック（dolls取得、ルーレット状態など）
-│       ├── types/              # 型定義（Doll, History など）
-│       └── utils/
-│
+├── frontend/                   # React + Vite + Tailwind（コンテナ実行）
 ├── backend/                    # Node.js + Express + TypeScript
-│   ├── package.json
-│   ├── tsconfig.json
-│   ├── Dockerfile
-│   ├── src/
-│   │   ├── index.ts            # エントリ・Express 起動
-│   │   ├── app.ts              # Express アプリ設定（CORS, ルート）
-│   │   ├── config/             # DB接続設定など
-│   │   ├── db/                 # 接続・マイグレーション関連
-│   │   │   ├── client.ts       # PostgreSQL クライアント
-│   │   │   └── migrations/     # SQL またはマイグレーションツール用
-│   │   ├── routes/             # API ルート（dolls, histories, reset）
-│   │   ├── controllers/       # 各ルートの処理
-│   │   ├── services/          # ビジネスロジック（ルーレット抽選など）
-│   │   ├── types/             # 型定義（DB エンティティ、API 型）
-│   │   └── middleware/        # エラーハンドリングなど
-│   └── (tests/)               # 必要に応じて
-│
-├── db/                         # DB 専用リソース（オプション：backend に含めても可）
-│   ├── init/                   # 初期化SQL（dolls, histories 作成）
-│   │   └── 01_schema.sql
-│   └── (migrations/)           # または backend 側に集約
-│
-└── docs/                       # 設計・メモ
-    ├── design.md
-    ├── folder-structure.md     # 本ドキュメント
-    └── (api.md など)
+├── db/                         # DB 初期化用 SQL
+├── scripts/                    # 運用スクリプト（WSL2 ポート転送等）
+└── docs/                       # 設計・仕様ドキュメント
 ```
 
 ---
 
-## ディレクトリの役割（要点）
+## frontend/
 
-| パス | 役割 |
+| パス | 説明 |
 |------|------|
-| `frontend/` | React SPA。かぞくたち一覧・登録・ルーレット・履歴・リセットのUI。`api/` で backend を呼ぶ。 |
-| `backend/src/routes/` | 例: `/api/dolls`, `/api/dolls/:id`, `/api/outings`, `/api/histories`, `/api/roulette`, `/api/reset` など。 |
-| `backend/src/services/` | ルーレットの「未選択から1体選ぶ」「全員選択済みなら終了」などのロジック。 |
-| `backend/src/db/` | PostgreSQL 接続と、dolls / histories のスキーマ管理。 |
-| `db/init/` | Docker で postgres 起動時に流す初期スキーマ（dolls, histories テーブル）。 |
-| `docs/` | design.md や本フォルダ案、将来的に API 仕様書など。 |
+| `package.json` | 依存関係・スクリプト |
+| `vite.config.ts` | Vite 設定（`server: { host: true }` でスマホ接続対応） |
+| `tsconfig.json` | TypeScript 設定 |
+| `tailwind.config.js` | Tailwind CSS 設定 |
+| `index.html` | エントリ HTML |
+| `public/` | 静的ファイル |
+| **src/** | ソースコード |
+| `src/main.tsx` | エントリ |
+| `src/App.tsx` | ルートコンポーネント・ルーティング |
+| `src/index.css` | グローバルスタイル |
+| **src/api/** | API クライアント（backend 呼び出し） |
+| `src/api/client.ts` | ベースURL・apiUrl() |
+| `src/api/dolls.ts` | 家族 CRUD・画像アップロード・削除 |
+| `src/api/outings.ts` | お出かけ日記 CRUD・画像 |
+| `src/api/histories.ts` | 当選履歴取得・削除 |
+| `src/api/roulette.ts` | ルーレット spin |
+| `src/api/reset.ts` | リセット |
+| **src/pages/** | 画面単位 |
+| `src/pages/DollsPage.tsx` | かぞく一覧・登録・詳細オーバーレイ・編集・削除 |
+| `src/pages/OutingsPage.tsx` | お出かけ日記 一覧・登録・詳細オーバーレイ・編集・削除 |
+| `src/pages/RoulettePage.tsx` | ルーレット・当選表示・当選履歴・リセット |
+| **src/components/** | 共通UI |
+| `src/components/RouletteWheel.tsx` | 円盤ルーレットコンポーネント |
+| **src/types/** | 型定義 |
+| `src/types/doll.ts` | Doll 型 |
+| **src/utils/** | ユーティリティ |
+| `src/utils/colors.ts` | 色名→スタイル（円盤・ラベル用） |
 
 ---
 
-## 将来拡張を見据えた配置
+## backend/
 
-- **写真機能**: ✅ 実装済み。家族は `POST /api/dolls/:id/image`（代表1枚）・`POST /api/dolls/:id/images`（複数）・`POST /api/dolls/:id/images/remove`（1枚削除）。お出かけ日記は `POST /api/outings/:id/images`・`POST /api/outings/:id/images/remove`。`/uploads` で静的配信、`uploads_data` ボリューム。
-- **認証・複数リスト（三次）**: `backend/src/` に `auth/`, `users/` などを追加しつつ、既存の `routes/` を拡張する形で対応可能。
-- **クラウドデプロイ**: `docker-compose.yml` はそのまま活かしつつ、`backend/Dockerfile` や環境変数で本番用設定を分離。
+| パス | 説明 |
+|------|------|
+| `package.json` | 依存関係・スクリプト |
+| `tsconfig.json` | TypeScript 設定 |
+| `Dockerfile` | コンテナビルド |
+| **src/** | ソースコード |
+| `src/index.ts` | エントリ・HTTP サーバ起動 |
+| `src/app.ts` | Express アプリ（CORS・ルート・静的配信 `/uploads`） |
+| **src/config/** | 設定 |
+| `src/config/db.ts` | DB 接続パラメータ |
+| **src/db/** | DB 接続 |
+| `src/db/client.ts` | PostgreSQL クライアント（pg.Pool） |
+| **src/routes/** | API ルート |
+| `src/routes/dolls.ts` | /api/dolls（CRUD・画像アップロード・remove） |
+| `src/routes/outings.ts` | /api/outings（CRUD・画像・remove） |
+| `src/routes/histories.ts` | /api/histories（取得・削除） |
+| `src/routes/roulette.ts` | /api/roulette/spin |
+| `src/routes/reset.ts` | /api/reset |
+| **src/services/** | ビジネスロジック |
+| `src/services/dollsService.ts` | 家族の取得・登録・更新・削除・画像 |
+| `src/services/outingsService.ts` | お出かけの CRUD・画像 |
+| `src/services/historiesService.ts` | 履歴取得・削除 |
+| `src/services/rouletteService.ts` | 抽選ロジック（重み・当選画像選択） |
+| `src/services/resetService.ts` | 全員 is_selected リセット・履歴削除 |
+| **src/types/** | 型定義 |
+| `src/types/doll.ts` | Doll 等 |
+| `src/types/outing.ts` | Outing 等 |
+| `src/types/history.ts` | History 等 |
 
 ---
 
-## 補足
+## db/
 
-- **db/** は「コンテナ用の初期化だけ」にし、マイグレーションは `backend/src/db/migrations/` にまとめる運用でも問題ありません。
-- フロントを Docker で動かす場合は `frontend/Dockerfile` と `docker-compose` の frontend サービスを追加。開発時は `npm run dev` をホストで実行し、backend と DB だけ Docker でも可。
+| パス | 説明 |
+|------|------|
+| **init/** | 初期化 SQL（PostgreSQL コンテナの `/docker-entrypoint-initdb.d` で実行） |
+| `init/01_schema.sql` | メインスキーマ（dolls, histories, outings, outing_dolls, outing_images, doll_images） |
+| `init/02_outings.sql` | 既存DB用：outings 系のみ |
+| `init/03_outing_images.sql` | 既存DB用：outing_images |
+| `init/04_doll_images.sql` | 既存DB用：doll_images |
+| `init/05_histories_image_url.sql` | 既存DB用：histories.doll_image_url 追加 |
 
-この構成案をベースに、Step 1 の Docker 環境構築から順に進められます。
+※ 新規構築時は `01_schema.sql` のみで全テーブル作成。02〜05 は既存 DB への追加用。
+
+---
+
+## docs/
+
+| ファイル | 説明 |
+|----------|------|
+| design.md | 仕様・技術スタック・開発履歴・将来拡張 |
+| folder-structure.md | 本ドキュメント（フォルダ構成） |
+| db-structure.md | DB 構成（テーブル定義・ER・初期化） |
+| STATUS.md | 機能一覧・API 一覧・起動方法 |
+| 基本設計書.md | 基本設計（概要・スコープ・機能概要・非機能） |
+| 詳細設計書.md | 詳細設計（モジュール・DB・API・画面・処理） |
+| roulette-wheel-spec.md | ルーレット円盤の仕様 |
+| 修正依頼-対応メモ.md | 修正履歴メモ（任意） |
+
+---
+
+## 関連
+
+- **DB のテーブル定義・ER・インデックス** → [db-structure.md](db-structure.md)
+- **機能・API 一覧** → [STATUS.md](STATUS.md)
