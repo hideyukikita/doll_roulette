@@ -7,7 +7,7 @@ import { apiUrl } from "../api/client.js";
 import type { Doll } from "../types/doll.js";
 
 /** 色の選択肢（design: 色を選択して登録） */
-const COLOR_OPTIONS = [
+const COLOR_OPTIONS: { value: string; label: string }[] = [
   { value: "茶色", label: "茶色" },
   { value: "白", label: "白" },
   { value: "ピンク", label: "ピンク" },
@@ -25,18 +25,20 @@ const COLOR_OPTIONS = [
   { value: "その他", label: "その他" },
 ];
 
+const DEFAULT_COLOR = COLOR_OPTIONS[0]?.value ?? "その他";
+
 export default function DollsPage() {
   const [dolls, setDolls] = useState<Doll[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [name, setName] = useState("");
-  const [color, setColor] = useState(COLOR_OPTIONS[0].value);
+  const [color, setColor] = useState(DEFAULT_COLOR);
   const [imageFile, setImageFile] = useState<File | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState("");
-  const [editColor, setEditColor] = useState(COLOR_OPTIONS[0].value);
+  const [editColor, setEditColor] = useState(DEFAULT_COLOR);
   const [editImageFile, setEditImageFile] = useState<File | null>(null);
   const [editImageFiles, setEditImageFiles] = useState<File[]>([]);
   const [editImageInputKey, setEditImageInputKey] = useState(0);
@@ -46,6 +48,23 @@ export default function DollsPage() {
   const [detailId, setDetailId] = useState<string | null>(null);
   /** 詳細内で画像タップ時に全体表示するURL（お出かけ日記と同様） */
   const [selectedImageUrl, setSelectedImageUrl] = useState<string | null>(null);
+
+  const handleDownloadImage = async (imagePath: string) => {
+    try {
+      const url = apiUrl(imagePath);
+      const res = await fetch(url);
+      if (!res.ok) throw new Error("ダウンロードに失敗しました");
+      const blob = await res.blob();
+      const filename = imagePath.split("/").pop() ?? "doll_image.jpg";
+      const a = document.createElement("a");
+      a.href = URL.createObjectURL(blob);
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(a.href);
+    } catch {
+      setError("画像のダウンロードに失敗しました");
+    }
+  };
 
   const fetchDolls = useCallback(async () => {
     setLoading(true);
@@ -77,7 +96,7 @@ export default function DollsPage() {
         await uploadDollImage(doll.id, imageFile);
       }
       setName("");
-      setColor(COLOR_OPTIONS[0].value);
+      setColor(DEFAULT_COLOR);
       setImageFile(null);
       await fetchDolls();
     } catch (e) {
@@ -100,7 +119,7 @@ export default function DollsPage() {
   const handleEditCancel = () => {
     setEditingId(null);
     setEditName("");
-    setEditColor(COLOR_OPTIONS[0].value);
+    setEditColor(DEFAULT_COLOR);
     setEditImageFile(null);
     setEditImageFiles([]);
   };
@@ -120,7 +139,7 @@ export default function DollsPage() {
       }
       setEditingId(null);
       setEditName("");
-      setEditColor(COLOR_OPTIONS[0].value);
+      setEditColor(DEFAULT_COLOR);
       setEditImageFile(null);
       setEditImageFiles([]);
       await fetchDolls();
@@ -523,6 +542,17 @@ export default function DollsPage() {
               <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
               </svg>
+            </button>
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                handleDownloadImage(selectedImageUrl);
+              }}
+              className="absolute top-4 right-16 rounded-lg bg-white/90 px-3 py-2 text-sm font-medium text-stone-600 hover:bg-white"
+              aria-label="画像をダウンロード"
+            >
+              ダウンロード
             </button>
             <img
               src={apiUrl(selectedImageUrl)}

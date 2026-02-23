@@ -43,7 +43,7 @@ doll_roulette/
 | `src/api/roulette.ts` | ルーレット spin |
 | `src/api/reset.ts` | リセット |
 | **src/pages/** | 画面単位 |
-| `src/pages/DollsPage.tsx` | かぞく一覧・登録・詳細オーバーレイ・編集・削除 |
+| `src/pages/DollsPage.tsx` | かぞく一覧・登録・詳細オーバーレイ・編集・削除・画像全体表示・ダウンロード |
 | `src/pages/OutingsPage.tsx` | お出かけ日記 一覧・登録・詳細オーバーレイ・編集・削除 |
 | `src/pages/RoulettePage.tsx` | ルーレット・当選表示・当選履歴・リセット |
 | **src/components/** | 共通UI |
