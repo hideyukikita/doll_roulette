@@ -1,52 +1,43 @@
 /**
- * お出かけ日記 API
+ * お出かけ日記 API ルート（ストレージ層を利用）
  */
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import crypto from "crypto";
+import { getStorage } from "../storage/index.js";
+import { storageConfig } from "../config/storage.js";
 import * as outingsService from "../services/outingsService.js";
 
 const router = Router();
+const storage = getStorage();
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
+const memoryStorage = multer.memoryStorage();
+const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
+  if (storageConfig.allowedMimeTypes.includes(file.mimetype as typeof storageConfig.allowedMimeTypes[number])) {
+    cb(null, true);
+  } else {
+    cb(new Error("画像ファイル（JPEG/PNG/GIF/WebP）のみアップロードできます"));
+  }
+};
+const upload = multer({ storage: memoryStorage, fileFilter });
+
+function getExt(mimetype: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": ".jpg", "image/jpg": ".jpg", "image/png": ".png",
+    "image/gif": ".gif", "image/webp": ".webp",
+  };
+  return map[mimetype] ?? ".jpg";
 }
 
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    const safeExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext.toLowerCase())
-      ? ext.toLowerCase()
-      : ".jpg";
-    const id = req.params.id ?? "temp";
-    const uniq = crypto.randomUUID().slice(0, 8);
-    cb(null, `outing-${id}-${uniq}${safeExt}`);
-  },
-});
-
-const upload = multer({
-  storage,
-  fileFilter: (_req, file, cb) => {
-    if (/^image\/(jpeg|jpg|png|gif|webp)$/.test(file.mimetype)) {
-      cb(null, true);
-    } else {
-      cb(new Error("画像ファイル（JPEG/PNG/GIF/WebP）のみアップロードできます"));
-    }
-  },
-});
-
-/** GET /api/outings - 一覧（概要） */
+/** GET /api/outings - 一覧 */
 router.get("/", async (_req: Request, res: Response) => {
   try {
     const list = await outingsService.getOutings(50);
     res.json(list);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("does not exist") || (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "42P01")) {
+    const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
+    if (msg.includes("does not exist") || code === "42P01") {
       res.json([]);
       return;
     }
@@ -66,7 +57,8 @@ router.get("/:id", async (req: Request, res: Response) => {
     res.json(outing);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
-    if (msg.includes("does not exist") || (err && typeof err === "object" && "code" in err && (err as { code: string }).code === "42P01")) {
+    const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
+    if (msg.includes("does not exist") || code === "42P01") {
       res.status(404).json({ error: "指定のお出かけ日記が見つかりません" });
       return;
     }
@@ -74,7 +66,7 @@ router.get("/:id", async (req: Request, res: Response) => {
   }
 });
 
-/** PUT /api/outings/:id - 更新（場所・日付・コメント・一緒に行った家族。画像は変更しない） */
+/** PUT /api/outings/:id - 更新 */
 router.put("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body as { place?: string; outing_date?: string; comment?: string; doll_ids?: string[] };
@@ -96,7 +88,8 @@ router.put("/:id", async (req: Request, res: Response) => {
       res.status(404).json({ error: "指定のお出かけ日記が見つかりません" });
       return;
     }
-    res.json(updated);
+    const withImages = await outingsService.getOutingById(id);
+    res.json(withImages ?? updated);
   } catch (err) {
     const msg = err instanceof Error ? err.message : String(err);
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
@@ -107,7 +100,7 @@ router.put("/:id", async (req: Request, res: Response) => {
   }
 });
 
-/** POST /api/outings - 登録（JSON: place, outing_date, comment, doll_ids） */
+/** POST /api/outings - 登録 */
 router.post("/", async (req: Request, res: Response) => {
   const body = req.body as { place?: string; outing_date?: string; comment?: string; doll_ids?: string[] };
   const place = body.place?.trim();
@@ -130,7 +123,7 @@ router.post("/", async (req: Request, res: Response) => {
     const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
     let userMessage = "登録に失敗しました";
     if (msg.includes("does not exist") || code === "42P01") {
-      userMessage = "お出かけ日記用のテーブルがありません。db/init/02_outings.sql を実行してください。";
+      userMessage = "お出かけ日記用のテーブルがありません。";
     } else if (msg.includes("foreign key") || code === "23503") {
       userMessage = "選択した家族のデータが見つかりません。ページを再読み込みしてやり直してください。";
     } else if (msg) {
@@ -140,7 +133,7 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-/** POST /api/outings/:id/images/remove - 画像1枚削除（※ images より先に定義） */
+/** POST /api/outings/:id/images/remove */
 router.post("/:id/images/remove", async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body as { image_url?: string };
@@ -155,6 +148,11 @@ router.post("/:id/images/remove", async (req: Request, res: Response) => {
       res.status(404).json({ error: "指定の画像が見つかりません" });
       return;
     }
+    try {
+      await storage.delete(imageUrl);
+    } catch {
+      // ファイル削除失敗は無視
+    }
     const updated = await outingsService.getOutingById(id);
     res.json(updated);
   } catch (err) {
@@ -162,19 +160,11 @@ router.post("/:id/images/remove", async (req: Request, res: Response) => {
   }
 });
 
-/** POST /api/outings/:id/images - 複数画像アップロード（枚数制限なし・家庭内運用） */
 const maxImages = 100;
+/** POST /api/outings/:id/images - 複数画像アップロード */
 router.post(
   "/:id/images",
-  (req: Request, res: Response, next: () => void) => {
-    upload.array("images", maxImages)(req, res, (err: unknown) => {
-      if (err) {
-        res.status(400).json({ error: err instanceof Error ? err.message : "画像のアップロードに失敗しました" });
-        return;
-      }
-      next();
-    });
-  },
+  upload.array("images", maxImages),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[] | undefined;
@@ -183,40 +173,33 @@ router.post(
       return;
     }
     try {
-      const imageUrls = files.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i }));
+      const outing = await outingsService.getOutingById(id);
+      if (!outing) {
+        res.status(404).json({ error: "指定のお出かけ日記が見つかりません" });
+        return;
+      }
+      const imageUrls: { url: string; sortOrder: number }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const ext = getExt(f.mimetype);
+        const relativePath = `outings/${id}/${crypto.randomUUID()}${ext}`;
+        const savedPath = await storage.save(f.buffer, relativePath);
+        imageUrls.push({ url: savedPath, sortOrder: i });
+      }
       await outingsService.addOutingImages(id, imageUrls);
       const updated = await outingsService.getOutingById(id);
       res.json(updated);
     } catch (err) {
-      (files || []).forEach((f) => {
-        if (f.path && fs.existsSync(f.path)) fs.unlink(f.path, () => {});
-      });
-      const msg = err instanceof Error ? err.message : String(err);
-      const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
-      let userMessage = "画像のアップロードに失敗しました";
-      if (msg.includes("does not exist") || code === "42P01") {
-        userMessage = "複数画像用のテーブルがありません。db/init/03_outing_images.sql を実行してください。";
-      } else if (msg) {
-        userMessage = msg;
-      }
-      res.status(500).json({ error: userMessage });
+      const msg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
+      res.status(500).json({ error: msg });
     }
   }
 );
 
-/** POST /api/outings/:id/image - 画像1枚アップロード（後方互換） */
+/** POST /api/outings/:id/image - 画像1枚（後方互換） */
 router.post(
   "/:id/image",
-  (req: Request, res: Response, next: () => void) => {
-    upload.single("image")(req, res, (err: unknown) => {
-      if (err) {
-        const msg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
-        res.status(400).json({ error: msg });
-        return;
-      }
-      next();
-    });
-  },
+  upload.single("image"),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!req.file) {
@@ -224,20 +207,19 @@ router.post(
       return;
     }
     try {
-      const imageUrl = `/uploads/${req.file.filename}`;
-      await outingsService.addOutingImages(id, [{ url: imageUrl, sortOrder: 0 }]);
+      const ext = getExt(req.file.mimetype);
+      const relativePath = `outings/${id}/${crypto.randomUUID()}${ext}`;
+      const savedPath = await storage.save(req.file.buffer, relativePath);
+      await outingsService.addOutingImages(id, [{ url: savedPath, sortOrder: 0 }]);
       const updated = await outingsService.getOutingById(id);
       res.json(updated);
     } catch (err) {
-      if (req.file?.path && fs.existsSync(req.file.path)) {
-        fs.unlink(req.file.path, () => {});
-      }
       res.status(500).json({ error: "画像のアップロードに失敗しました" });
     }
   }
 );
 
-/** DELETE /api/outings/:id - 日記ごと削除（※ /:id/images より後に定義すること） */
+/** DELETE /api/outings/:id */
 router.delete("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   try {

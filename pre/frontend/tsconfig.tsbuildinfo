@@ -1,0 +1,1 @@
+{"root":["./src/App.tsx","./src/main.tsx","./src/vite-env.d.ts","./src/api/client.ts","./src/api/dolls.ts","./src/api/histories.ts","./src/api/reset.ts","./src/api/roulette.ts","./src/components/RouletteWheel.tsx","./src/pages/DollsPage.tsx","./src/pages/RoulettePage.tsx","./src/types/doll.ts","./src/utils/colors.ts"],"errors":true,"version":"5.6.3"}

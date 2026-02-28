@@ -1,15 +1,14 @@
 /**
- * かぞくたちのビジネスロジック（一覧・登録・削除）
+ * かぞくのビジネスロジック（一覧・登録・更新・削除・画像）
+ * リファクタ後: 画像は doll_images のみ。代表 = sort_order 最小の 1 件。
  */
 import { pool } from "../db/client.js";
 import type { Doll, CreateDollBody } from "../types/doll.js";
 
-/** 一覧取得（created_at 昇順）。image_urls は doll_images があればそちら、なければ [image_url] */
+/** 一覧取得（created_at 昇順）。image_urls は doll_images を sort_order 順 */
 export async function getDolls(): Promise<Doll[]> {
-  const result = await pool.query<Doll>(
-    `SELECT id, name, color, image_url, is_selected, created_at
-     FROM dolls
-     ORDER BY created_at ASC`
+  const result = await pool.query<Omit<Doll, "image_url" | "image_urls">>(
+    `SELECT id, name, color, is_selected, created_at FROM dolls ORDER BY created_at ASC`
   );
   const dolls = result.rows;
   const withUrls = await Promise.all(
@@ -17,21 +16,19 @@ export async function getDolls(): Promise<Doll[]> {
       const imgResult = await pool.query<{ image_url: string }>(
         "SELECT image_url FROM doll_images WHERE doll_id = $1 ORDER BY sort_order, created_at",
         [d.id]
-      ).catch(() => ({ rows: [] }));
-      const image_urls = imgResult.rows.length > 0
-        ? imgResult.rows.map((r) => r.image_url)
-        : (d.image_url ? [d.image_url] : []);
-      return { ...d, image_urls };
+      );
+      const image_urls = imgResult.rows.map((r) => r.image_url);
+      const image_url = image_urls[0] ?? null;
+      return { ...d, image_url, image_urls };
     })
   );
   return withUrls;
 }
 
-/** 1件取得（image_urls 付き） */
+/** 1 件取得（image_urls 付き） */
 export async function getDollById(id: string): Promise<Doll | null> {
-  const result = await pool.query<Doll>(
-    `SELECT id, name, color, image_url, is_selected, created_at
-     FROM dolls WHERE id = $1`,
+  const result = await pool.query<Omit<Doll, "image_url" | "image_urls">>(
+    "SELECT id, name, color, is_selected, created_at FROM dolls WHERE id = $1",
     [id]
   );
   const d = result.rows[0];
@@ -39,92 +36,82 @@ export async function getDollById(id: string): Promise<Doll | null> {
   const imgResult = await pool.query<{ image_url: string }>(
     "SELECT image_url FROM doll_images WHERE doll_id = $1 ORDER BY sort_order, created_at",
     [id]
-  ).catch(() => ({ rows: [] }));
-  const image_urls = imgResult.rows.length > 0
-    ? imgResult.rows.map((r) => r.image_url)
-    : (d.image_url ? [d.image_url] : []);
-  return { ...d, image_urls };
+  );
+  const image_urls = imgResult.rows.map((r) => r.image_url);
+  const image_url = image_urls[0] ?? null;
+  return { ...d, image_url, image_urls };
 }
 
 /** 登録（名前・色） */
 export async function createDoll(body: CreateDollBody): Promise<Doll> {
-  const result = await pool.query<Doll>(
-    `INSERT INTO dolls (name, color)
-     VALUES ($1, $2)
-     RETURNING id, name, color, image_url, is_selected, created_at`,
+  const result = await pool.query<Omit<Doll, "image_url" | "image_urls">>(
+    `INSERT INTO dolls (name, color) VALUES ($1, $2)
+     RETURNING id, name, color, is_selected, created_at`,
     [body.name.trim(), body.color.trim()]
   );
   const row = result.rows[0];
   if (!row) throw new Error("登録に失敗しました");
-  return row;
+  return { ...row, image_url: null, image_urls: [] };
 }
 
-/** 画像URL更新 */
-export async function updateDollImage(id: string, imageUrl: string): Promise<Doll | null> {
-  const result = await pool.query<Doll>(
-    `UPDATE dolls SET image_url = $1 WHERE id = $2
-     RETURNING id, name, color, image_url, is_selected, created_at`,
+/** 代表画像の設定（sort_order=0 の行を更新、なければ挿入） */
+export async function setDollRepresentativeImage(id: string, imageUrl: string): Promise<Doll | null> {
+  const row = await pool.query(
+    "UPDATE doll_images SET image_url = $1 WHERE doll_id = $2 AND sort_order = 0 RETURNING id",
     [imageUrl, id]
   );
-  return result.rows[0] ?? null;
+  if ((row.rowCount ?? 0) > 0) {
+    return getDollById(id);
+  }
+  await pool.query(
+    "INSERT INTO doll_images (doll_id, image_url, sort_order) VALUES ($1, $2, 0)",
+    [id, imageUrl]
+  );
+  return getDollById(id);
 }
 
 /** 更新（名前・色） */
 export async function updateDoll(id: string, body: CreateDollBody): Promise<Doll | null> {
-  const result = await pool.query<Doll>(
-    `UPDATE dolls SET name = $1, color = $2
-     WHERE id = $3
-     RETURNING id, name, color, image_url, is_selected, created_at`,
+  const result = await pool.query<Omit<Doll, "image_url" | "image_urls">>(
+    `UPDATE dolls SET name = $1, color = $2 WHERE id = $3
+     RETURNING id, name, color, is_selected, created_at`,
     [body.name.trim(), body.color.trim(), id]
   );
-  return result.rows[0] ?? null;
+  const row = result.rows[0];
+  if (!row) return null;
+  const imgResult = await pool.query<{ image_url: string }>(
+    "SELECT image_url FROM doll_images WHERE doll_id = $1 ORDER BY sort_order, created_at",
+    [id]
+  );
+  const image_urls = imgResult.rows.map((r) => r.image_url);
+  return { ...row, image_url: image_urls[0] ?? null, image_urls };
 }
 
 /** 削除 */
 export async function deleteDoll(id: string): Promise<boolean> {
-  const result = await pool.query(
-    `DELETE FROM dolls WHERE id = $1`,
-    [id]
-  );
+  const result = await pool.query("DELETE FROM dolls WHERE id = $1", [id]);
   return (result.rowCount ?? 0) > 0;
 }
 
 /** 複数画像を追加（doll_images に挿入） */
-export async function addDollImages(dollId: string, imageUrls: { url: string; sortOrder: number }[]): Promise<void> {
+export async function addDollImages(
+  dollId: string,
+  imageUrls: { url: string; sortOrder: number }[]
+): Promise<void> {
   if (imageUrls.length === 0) return;
-  for (let i = 0; i < imageUrls.length; i++) {
-    const { url, sortOrder } = imageUrls[i];
-    try {
-      await pool.query(
-        "INSERT INTO doll_images (doll_id, image_url, sort_order) VALUES ($1, $2, $3)",
-        [dollId, url, sortOrder]
-      );
-    } catch (err) {
-      throw err;
-    }
+  for (const { url, sortOrder } of imageUrls) {
+    await pool.query(
+      "INSERT INTO doll_images (doll_id, image_url, sort_order) VALUES ($1, $2, $3)",
+      [dollId, url, sortOrder]
+    );
   }
 }
 
-/** 1枚削除（doll_images から削除。なければ dolls.image_url を null に＝従来の1枚のみのケース） */
+/** 画像 1 枚削除（doll_images から。パスで一致） */
 export async function deleteDollImage(dollId: string, imageUrl: string): Promise<boolean> {
-  try {
-    const result = await pool.query(
-      "DELETE FROM doll_images WHERE doll_id = $1 AND image_url = $2",
-      [dollId, imageUrl]
-    );
-    const n = result.rowCount ?? 0;
-    if (n > 0) return true;
-    const row = await pool.query<{ image_url: string | null }>(
-      "SELECT image_url FROM dolls WHERE id = $1",
-      [dollId]
-    );
-    const currentUrl = row.rows[0]?.image_url ?? null;
-    if (currentUrl === imageUrl) {
-      await pool.query("UPDATE dolls SET image_url = NULL WHERE id = $1", [dollId]);
-      return true;
-    }
-    return false;
-  } catch (err) {
-    throw err;
-  }
+  const result = await pool.query(
+    "DELETE FROM doll_images WHERE doll_id = $1 AND image_url = $2",
+    [dollId, imageUrl]
+  );
+  return (result.rowCount ?? 0) > 0;
 }

@@ -1,5 +1,8 @@
 {
     "cSpell.words": [
         "Supabase"
+    ],
+    "cSpell.ignoreWords": [
+        "OCPU"
     ]
 }

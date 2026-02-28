@@ -67,6 +67,12 @@ doll_roulette/
 | `src/app.ts` | Express アプリ（CORS・ルート・静的配信 `/uploads`） |
 | **src/config/** | 設定 |
 | `src/config/db.ts` | DB 接続パラメータ |
+| `src/config/storage.ts` | ストレージ・アップロード用設定 |
+| `src/config/index.ts` | 設定の集約 export |
+| **src/storage/** | 画像ストレージ抽象層 |
+| `src/storage/types.ts` | IStorage インターフェース |
+| `src/storage/local.ts` | ローカルディスク実装 |
+| `src/storage/index.ts` | getStorage() |
 | **src/db/** | DB 接続 |
 | `src/db/client.ts` | PostgreSQL クライアント（pg.Pool） |
 | **src/routes/** | API ルート |
@@ -93,13 +99,10 @@ doll_roulette/
 | パス | 説明 |
 |------|------|
 | **init/** | 初期化 SQL（PostgreSQL コンテナの `/docker-entrypoint-initdb.d` で実行） |
-| `init/01_schema.sql` | メインスキーマ（dolls, histories, outings, outing_dolls, outing_images, doll_images） |
-| `init/02_outings.sql` | 既存DB用：outings 系のみ |
-| `init/03_outing_images.sql` | 既存DB用：outing_images |
-| `init/04_doll_images.sql` | 既存DB用：doll_images |
-| `init/05_histories_image_url.sql` | 既存DB用：histories.doll_image_url 追加 |
+| `init/01_schema.sql` | メインスキーマ（リファクタ後：画像は doll_images / outing_images のみ） |
+| `migrations/001_drop_legacy_image_urls.sql` | 既存DB用：dolls/outings の image_url を *_images に移行してカラム削除 |
 
-※ 新規構築時は `01_schema.sql` のみで全テーブル作成。02〜05 は既存 DB への追加用。
+※ 新規構築時は `01_schema.sql` のみ実行。既存 DB を流用する場合は `migrations/001_drop_legacy_image_urls.sql` を実行。
 
 ---
 
@@ -114,6 +117,12 @@ doll_roulette/
 | 基本設計書.md | 基本設計（概要・スコープ・機能概要・非機能） |
 | 詳細設計書.md | 詳細設計（モジュール・DB・API・画面・処理） |
 | roulette-wheel-spec.md | ルーレット円盤の仕様 |
+| **移設計画書_OracleCloudおよび代替案.md** | **クラウド移設計画（OCI 無料枠・効率的利用・代替案・コスパ）。現状のアプリのまま載せる想定。** |
+| **リファクタリング計画書.md** | **リファクタ計画（DB・ディレクトリ・画像保存の見直し）。移設とは別計画。移設後に「クラウド移設用リファクタ」を行う想定。** |
+| **リファクタリング_ディレクトリ構成とデータ引継ぎ.md** | **pre/ への退避・ルートに改編内容を格納する手順、DB・画像のデータ引継ぎ方法。** |
+| **リファクタリング_設計書.md** | **一から作る場合の設計（DB・ディレクトリ・ストレージ・Docker）。** |
+| **Oracle移設_環境構築と改変手順.md** | **Oracle Cloud 移設：データ引き継ぎ・本番用改変・環境構築の詳細。** |
+| **Oracle移設_手順書.md** | **Oracle 移設の手順（フェーズ1〜6・順番どおり実行用）。** |
 | 修正依頼-対応メモ.md | 修正履歴メモ（任意） |
 
 ---

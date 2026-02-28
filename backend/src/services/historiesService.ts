@@ -1,5 +1,5 @@
 /**
- * 当選履歴の取得（日付降順）・1件削除（当選を取り消し、その子をルーレットに復活）
+ * 当選履歴の取得・1 件削除（リファクタ後: 代表画像は doll_images の先頭から取得）
  */
 import { pool } from "../db/client.js";
 import type { HistoryRecord } from "../types/history.js";
@@ -9,7 +9,9 @@ export async function getHistories(limit = 50): Promise<HistoryRecord[]> {
     `SELECT h.id, h.doll_id, h.selected_at,
             d.name AS doll_name,
             d.color AS doll_color,
-            COALESCE(h.doll_image_url, d.image_url) AS doll_image_url
+            COALESCE(h.doll_image_url,
+              (SELECT di.image_url FROM doll_images di WHERE di.doll_id = h.doll_id ORDER BY di.sort_order, di.created_at LIMIT 1)
+            ) AS doll_image_url
      FROM histories h
      JOIN dolls d ON h.doll_id = d.id
      ORDER BY h.selected_at DESC
@@ -19,7 +21,6 @@ export async function getHistories(limit = 50): Promise<HistoryRecord[]> {
   return result.rows;
 }
 
-/** 当選履歴1件を削除し、その子の is_selected を false に戻す（ルーレットに復活） */
 export async function deleteHistoryById(id: string): Promise<{ dollId: string } | null> {
   const client = await pool.connect();
   try {

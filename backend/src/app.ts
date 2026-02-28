@@ -1,9 +1,10 @@
 /**
- * Express アプリ設定（CORS・ルート）
+ * Express アプリ設定（CORS・ルート・静的配信）
  */
+import fs from "fs";
 import express from "express";
-import path from "path";
 import cors from "cors";
+import { storageConfig } from "./config/storage.js";
 import dollsRouter from "./routes/dolls.js";
 import rouletteRouter from "./routes/roulette.js";
 import historiesRouter from "./routes/histories.js";
@@ -12,16 +13,14 @@ import outingsRouter from "./routes/outings.js";
 
 const app = express();
 
-// フロントエンド（Vite: 5173）およびスマホからのアクセスを許可（design.md セクション8）
-app.use(
-  cors({
-    origin: true,
-  })
-);
+app.use(cors({ origin: true }));
 app.use(express.json());
 
-// 画像ファイルの配信
-app.use("/uploads", express.static(path.join(process.cwd(), "uploads")));
+// 画像の静的配信（uploads ディレクトリを事前に作成）
+if (!fs.existsSync(storageConfig.uploadsDir)) {
+  fs.mkdirSync(storageConfig.uploadsDir, { recursive: true });
+}
+app.use("/uploads", express.static(storageConfig.uploadsDir));
 
 // ルートパス
 app.get("/", (_req, res) => {

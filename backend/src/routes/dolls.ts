@@ -1,55 +1,38 @@
 /**
- * かぞくたち API ルート（一覧・登録・削除・画像アップロード）
+ * かぞくたち API ルート（ストレージ層を利用）
  */
 import { Router, Request, Response } from "express";
 import multer from "multer";
-import path from "path";
-import fs from "fs";
 import crypto from "crypto";
+import { getStorage } from "../storage/index.js";
+import { storageConfig } from "../config/storage.js";
 import * as dollsService from "../services/dollsService.js";
 import type { CreateDollBody } from "../types/doll.js";
 
 const router = Router();
+const storage = getStorage();
 
-const UPLOADS_DIR = path.join(process.cwd(), "uploads");
-if (!fs.existsSync(UPLOADS_DIR)) {
-  fs.mkdirSync(UPLOADS_DIR, { recursive: true });
-}
-
-const storage = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    const safeExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext.toLowerCase())
-      ? ext.toLowerCase()
-      : ".jpg";
-    cb(null, `${req.params.id}${safeExt}`);
-  },
-});
-
-const storageMulti = multer.diskStorage({
-  destination: (_req, _file, cb) => cb(null, UPLOADS_DIR),
-  filename: (req, file, cb) => {
-    const ext = path.extname(file.originalname) || ".jpg";
-    const safeExt = [".jpg", ".jpeg", ".png", ".gif", ".webp"].includes(ext.toLowerCase())
-      ? ext.toLowerCase()
-      : ".jpg";
-    const id = req.params.id ?? "temp";
-    const uniq = crypto.randomUUID().slice(0, 8);
-    cb(null, `doll-${id}-${uniq}${safeExt}`);
-  },
-});
-
+const memoryStorage = multer.memoryStorage();
 const fileFilter = (_req: Request, file: Express.Multer.File, cb: multer.FileFilterCallback) => {
-  if (/^image\/(jpeg|jpg|png|gif|webp)$/.test(file.mimetype)) {
+  if (storageConfig.allowedMimeTypes.includes(file.mimetype as typeof storageConfig.allowedMimeTypes[number])) {
     cb(null, true);
   } else {
     cb(new Error("画像ファイル（JPEG/PNG/GIF/WebP）のみアップロードできます"));
   }
 };
+const upload = multer({ storage: memoryStorage, fileFilter });
+const uploadMulti = multer({ storage: memoryStorage, fileFilter });
 
-const upload = multer({ storage, fileFilter });
-const uploadMulti = multer({ storage: storageMulti, fileFilter });
+function getExt(mimetype: string): string {
+  const map: Record<string, string> = {
+    "image/jpeg": ".jpg",
+    "image/jpg": ".jpg",
+    "image/png": ".png",
+    "image/gif": ".gif",
+    "image/webp": ".webp",
+  };
+  return map[mimetype] ?? ".jpg";
+}
 
 /** GET /api/dolls - 一覧 */
 router.get("/", async (_req: Request, res: Response) => {
@@ -61,7 +44,7 @@ router.get("/", async (_req: Request, res: Response) => {
   }
 });
 
-/** POST /api/dolls - 登録（body: { name, color }） */
+/** POST /api/dolls - 登録 */
 router.post("/", async (req: Request, res: Response) => {
   const body = req.body as Partial<CreateDollBody>;
   const name = body?.name?.trim();
@@ -78,19 +61,10 @@ router.post("/", async (req: Request, res: Response) => {
   }
 });
 
-/** POST /api/dolls/:id/image - 画像アップロード */
+/** POST /api/dolls/:id/image - 代表画像アップロード */
 router.post(
   "/:id/image",
-  (req: Request, res: Response, next: () => void) => {
-    upload.single("image")(req, res, (err: unknown) => {
-      if (err) {
-        const msg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
-        res.status(400).json({ error: msg });
-        return;
-      }
-      next();
-    });
-  },
+  upload.single("image"),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     if (!req.file) {
@@ -100,25 +74,22 @@ router.post(
     try {
       const doll = await dollsService.getDollById(id);
       if (!doll) {
-        fs.unlink(req.file.path, () => {});
         res.status(404).json({ error: "指定のかぞくが見つかりません" });
         return;
       }
-      const imageUrl = `/uploads/${req.file.filename}`;
-      await dollsService.updateDollImage(id, imageUrl);
-      const updated = await dollsService.getDollById(id);
+      const ext = getExt(req.file.mimetype);
+      const relativePath = `dolls/${id}/${crypto.randomUUID()}${ext}`;
+      const savedPath = await storage.save(req.file.buffer, relativePath);
+      const updated = await dollsService.setDollRepresentativeImage(id, savedPath);
       res.json(updated);
     } catch (err) {
-      if (req.file?.path && fs.existsSync(req.file.path)) {
-        fs.unlink(req.file.path, () => {});
-      }
       const msg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
       res.status(500).json({ error: msg });
     }
   }
 );
 
-/** POST /api/dolls/:id/images/remove - 画像1枚削除（※ images より先に定義） */
+/** POST /api/dolls/:id/images/remove */
 router.post("/:id/images/remove", async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body as { image_url?: string };
@@ -133,6 +104,11 @@ router.post("/:id/images/remove", async (req: Request, res: Response) => {
       res.status(404).json({ error: "指定の画像が見つかりません" });
       return;
     }
+    try {
+      await storage.delete(imageUrl);
+    } catch {
+      // ファイル削除失敗は無視（DB からは削除済み）
+    }
     const updated = await dollsService.getDollById(id);
     res.json(updated);
   } catch (err) {
@@ -141,18 +117,10 @@ router.post("/:id/images/remove", async (req: Request, res: Response) => {
 });
 
 const maxDollImages = 100;
-/** POST /api/dolls/:id/images - 複数画像アップロード（枚数制限なし・家庭内運用） */
+/** POST /api/dolls/:id/images - 複数画像アップロード */
 router.post(
   "/:id/images",
-  (req: Request, res: Response, next: () => void) => {
-    uploadMulti.array("images", maxDollImages)(req, res, (err: unknown) => {
-      if (err) {
-        res.status(400).json({ error: err instanceof Error ? err.message : "画像のアップロードに失敗しました" });
-        return;
-      }
-      next();
-    });
-  },
+  uploadMulti.array("images", maxDollImages),
   async (req: Request, res: Response) => {
     const { id } = req.params;
     const files = req.files as Express.Multer.File[] | undefined;
@@ -163,27 +131,28 @@ router.post(
     try {
       const doll = await dollsService.getDollById(id);
       if (!doll) {
-        (files || []).forEach((f) => { if (f.path && fs.existsSync(f.path)) fs.unlink(f.path, () => {}); });
         res.status(404).json({ error: "指定のかぞくが見つかりません" });
         return;
       }
-      const imageUrls = files.map((f, i) => ({ url: `/uploads/${f.filename}`, sortOrder: i }));
+      const imageUrls: { url: string; sortOrder: number }[] = [];
+      for (let i = 0; i < files.length; i++) {
+        const f = files[i];
+        const ext = getExt(f.mimetype);
+        const relativePath = `dolls/${id}/${crypto.randomUUID()}${ext}`;
+        const savedPath = await storage.save(f.buffer, relativePath);
+        imageUrls.push({ url: savedPath, sortOrder: i });
+      }
       await dollsService.addDollImages(id, imageUrls);
       const updated = await dollsService.getDollById(id);
       res.json(updated);
     } catch (err) {
-      (files || []).forEach((f) => { if (f.path && fs.existsSync(f.path)) fs.unlink(f.path, () => {}); });
       const msg = err instanceof Error ? err.message : "画像のアップロードに失敗しました";
-      const code = err && typeof err === "object" && "code" in err ? (err as { code: string }).code : "";
-      const userMessage = (msg.includes("does not exist") || code === "42P01")
-        ? "複数画像用のテーブルがありません。db/init/04_doll_images.sql を実行してください。"
-        : msg;
-      res.status(500).json({ error: userMessage });
+      res.status(500).json({ error: msg });
     }
   }
 );
 
-/** PUT /api/dolls/:id - 更新（body: { name, color }） */
+/** PUT /api/dolls/:id - 更新 */
 router.put("/:id", async (req: Request, res: Response) => {
   const { id } = req.params;
   const body = req.body as Partial<CreateDollBody>;
