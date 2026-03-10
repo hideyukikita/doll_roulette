@@ -1,0 +1,11 @@
+/// <reference types="node" />
+/**
+ * かぞくたちルーレット バックエンド エントリ
+ * Step 2: DB 接続 & かぞく一覧・登録 API / Step 4: ルーレット API
+ */
+import app from "./app.js";
+
+const PORT = Number(process.env.BACKEND_PORT) || 3000;
+const HOST = process.env.BACKEND_HOST ?? "0.0.0.0";
+
+app.listen(PORT, HOST);
