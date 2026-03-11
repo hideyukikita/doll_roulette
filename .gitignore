@@ -26,6 +26,7 @@ postgres_data/
 
 # アップロード画像（ローカル実行時）
 backend/uploads/
+oracle_uploads/
 
 # IDE
 .idea/
